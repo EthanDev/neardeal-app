@@ -236,7 +236,7 @@ export const useDealsStore = create<DealsState>((set, get) => ({
     try {
       // Import lazily to avoid circular dependency with api.ts.
       const { api } = await import('./api');
-      const deals = await api.get<Deal[]>('/deals');
+      const deals = await api.get<Deal[]>('/api/deals');
       set({ deals });
     } finally {
       set({ isLoading: false });
@@ -247,7 +247,7 @@ export const useDealsStore = create<DealsState>((set, get) => ({
     set({ isLoading: true });
     try {
       const { api } = await import('./api');
-      const created = await api.post<Deal>('/deals', deal);
+      const created = await api.post<Deal>('/api/deals', deal);
       set((state) => ({ deals: [...state.deals, created] }));
     } finally {
       set({ isLoading: false });
@@ -258,7 +258,7 @@ export const useDealsStore = create<DealsState>((set, get) => ({
     set({ isLoading: true });
     try {
       const { api } = await import('./api');
-      const updated = await api.put<Deal>(`/deals/${id}`, updates);
+      const updated = await api.put<Deal>(`/api/deals/${id}`, updates);
       set((state) => ({
         deals: state.deals.map((d) => (d.id === id ? updated : d)),
       }));
@@ -271,7 +271,7 @@ export const useDealsStore = create<DealsState>((set, get) => ({
     set({ isLoading: true });
     try {
       const { api } = await import('./api');
-      await api.delete<void>(`/deals/${id}`);
+      await api.delete<void>(`/api/deals/${id}`);
       set((state) => ({ deals: state.deals.filter((d) => d.id !== id) }));
     } finally {
       set({ isLoading: false });

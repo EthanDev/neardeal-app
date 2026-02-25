@@ -41,6 +41,13 @@ if (!CONSUMER_POOL_ID || !CONSUMER_CLIENT_ID) {
   );
 }
 
+if (CONSUMER_POOL_ID.includes('PLACEHOLDER') || CONSUMER_CLIENT_ID.includes('placeholder')) {
+  throw new Error(
+    'Consumer Cognito pool is not configured. EXPO_PUBLIC_CONSUMER_POOL_ID or EXPO_PUBLIC_CONSUMER_CLIENT_ID contains a placeholder value. ' +
+    'Run `./scripts/sync-env.sh [stage]` after deploying the Auth stack to populate real values.',
+  );
+}
+
 export const consumerPool = new CognitoUserPool({
   UserPoolId: CONSUMER_POOL_ID || 'placeholder',
   ClientId: CONSUMER_CLIENT_ID,
