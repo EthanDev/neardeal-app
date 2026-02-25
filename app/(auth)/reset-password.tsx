@@ -228,7 +228,7 @@ export default function ResetPasswordScreen() {
       <ScrollView
         className="flex-1"
         contentContainerStyle={{ flexGrow: 1 }}
-        keyboardShouldPersistTaps="handled"
+        keyboardShouldPersistTaps="always"
         showsVerticalScrollIndicator={false}
       >
         {/* Header row with back arrow */}

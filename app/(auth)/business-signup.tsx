@@ -397,7 +397,7 @@ export default function BusinessSignupScreen() {
         <ScrollView
           className="flex-1"
           contentContainerStyle={{ flexGrow: 1 }}
-          keyboardShouldPersistTaps="handled"
+          keyboardShouldPersistTaps="always"
           showsVerticalScrollIndicator={false}
         >
           <View className="flex-1 px-6 pt-20 pb-10 gap-6">
@@ -484,35 +484,34 @@ export default function BusinessSignupScreen() {
       <ScrollView
         className="flex-1"
         contentContainerStyle={{ flexGrow: 1 }}
-        keyboardShouldPersistTaps="handled"
+        keyboardShouldPersistTaps="always"
         showsVerticalScrollIndicator={false}
       >
-        <View className="px-6 pt-14 pb-10 gap-6">
-          {/* Back to consumer signup */}
+        <View className="px-6 pt-14 pb-10 gap-5">
+          {/* Back button */}
           <Pressable
             onPress={() => router.back()}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            className="flex-row items-center"
           >
-            <Text className="text-[#c8e000] text-sm font-medium">
-              {"← Back to consumer signup"}
-            </Text>
+            <Text className="text-[#8a8a8f] text-sm">← {t('common.back', { defaultValue: 'Back' })}</Text>
           </Pressable>
 
           {/* Logo */}
-          <View className="items-center pb-2">
+          <View className="items-center">
             <Text
-              className="text-[#c8e000] text-4xl font-bold tracking-tight"
+              className="text-[#c8e000] text-3xl font-bold tracking-tight"
               style={{ fontFamily: 'Syne_700Bold' }}
             >
               NearDeal
             </Text>
-            <Text className="text-[#8a8a8f] text-base tracking-widest uppercase mt-1">
+            <Text className="text-[#8a8a8f] text-xs tracking-widest uppercase mt-0.5">
               Business
             </Text>
           </View>
 
           {/* Title */}
-          <Text className="text-white text-2xl font-bold text-center">
+          <Text className="text-white text-xl font-bold text-center">
             {t('auth.signup.title')}
           </Text>
 

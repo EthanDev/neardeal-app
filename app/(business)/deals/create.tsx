@@ -1,6 +1,8 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -9,6 +11,9 @@ import {
   Text,
   View,
 } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import MapView, { Marker, Region } from 'react-native-maps';
+import * as Location from 'expo-location';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
@@ -296,6 +301,11 @@ function StepTerms({
   onChange: (updates: Partial<DealFormData>) => void;
   errors: Record<string, string>;
 }) {
+  const [showDatePicker, setShowDatePicker] = useState(false);
+
+  const parsedDate = form.expiresAt ? new Date(form.expiresAt) : new Date();
+  const isValidDate = form.expiresAt && !isNaN(parsedDate.getTime());
+
   return (
     <View className="gap-4">
       <Text className="text-white text-lg font-semibold">Terms & Limits</Text>
@@ -307,13 +317,48 @@ function StepTerms({
         keyboardType="numeric"
         error={errors.maxClaims}
       />
-      <Input
-        label="Expiry Date"
-        placeholder="YYYY-MM-DD e.g. 2026-03-15"
-        value={form.expiresAt}
-        onChangeText={(v) => onChange({ expiresAt: v })}
-        error={errors.expiresAt}
-      />
+
+      {/* Expiry Date — tap to show picker */}
+      <View className="w-full">
+        <Text className="text-[#8a8a8f] text-sm mb-1.5 font-medium">Expiry Date</Text>
+        <Pressable
+          onPress={() => {
+            Keyboard.dismiss();
+            setShowDatePicker((prev) => !prev);
+          }}
+          className={[
+            'flex-row items-center bg-[#1a1a1f] rounded-lg border h-12 px-3',
+            errors.expiresAt ? 'border-[#ef4444]' : showDatePicker ? 'border-[#c8e000]' : 'border-[#2a2a30]',
+          ].join(' ')}
+        >
+          <Text className={isValidDate ? 'text-white text-base' : 'text-[#8a8a8f] text-base'}>
+            {isValidDate
+              ? parsedDate.toLocaleDateString('en-CA') // YYYY-MM-DD format
+              : 'Select expiry date'}
+          </Text>
+        </Pressable>
+        {errors.expiresAt ? (
+          <Text className="text-[#ef4444] text-xs mt-1">{errors.expiresAt}</Text>
+        ) : null}
+
+        {showDatePicker && (
+          <View className="mt-2 bg-[#1a1a1f] rounded-lg border border-[#2a2a30] overflow-hidden">
+            <DateTimePicker
+              value={isValidDate ? parsedDate : new Date()}
+              mode="date"
+              display="spinner"
+              minimumDate={new Date()}
+              themeVariant="dark"
+              onChange={(_event, selectedDate) => {
+                if (selectedDate) {
+                  onChange({ expiresAt: selectedDate.toISOString().split('T')[0] });
+                }
+              }}
+            />
+          </View>
+        )}
+      </View>
+
       <Input
         label="Terms & Conditions (optional)"
         placeholder="Any restrictions or conditions..."
@@ -340,6 +385,14 @@ function StepTerms({
   );
 }
 
+// Default to central Bucharest
+const BUCHAREST_REGION: Region = {
+  latitude: 44.4268,
+  longitude: 26.1025,
+  latitudeDelta: 0.01,
+  longitudeDelta: 0.01,
+};
+
 function StepLocation({
   form,
   onChange,
@@ -349,16 +402,152 @@ function StepLocation({
   onChange: (updates: Partial<DealFormData>) => void;
   errors: Record<string, string>;
 }) {
+  const [suggestions, setSuggestions] = useState<Location.LocationGeocodedAddress[]>([]);
+  const [suggestionLabels, setSuggestionLabels] = useState<string[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [mapCoord, setMapCoord] = useState<{ latitude: number; longitude: number } | null>(
+    form.latitude && form.longitude
+      ? { latitude: Number(form.latitude), longitude: Number(form.longitude) }
+      : null,
+  );
+  const [showMap, setShowMap] = useState(!!mapCoord);
+  const [geocoding, setGeocoding] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const mapRef = useRef<MapView>(null);
+
+  // Geocode address text → suggestions + map pin
+  const geocodeAddress = useCallback(async (text: string) => {
+    if (text.length < 4) {
+      setSuggestionLabels([]);
+      setShowSuggestions(false);
+      return;
+    }
+    setGeocoding(true);
+    try {
+      const query = text.includes('Bucharest') ? text : `${text}, Bucharest, Romania`;
+      const results = await Location.geocodeAsync(query);
+      if (results.length > 0) {
+        const { latitude, longitude } = results[0];
+        setMapCoord({ latitude, longitude });
+        setShowMap(true);
+        onChange({ latitude: String(latitude), longitude: String(longitude) });
+
+        // Get display addresses via reverse geocode for suggestions
+        const reverseResults = await Location.reverseGeocodeAsync({ latitude, longitude });
+        if (reverseResults.length > 0) {
+          const labels = reverseResults.slice(0, 3).map((r) => {
+            const parts = [r.street, r.streetNumber, r.district, r.city].filter(Boolean);
+            return parts.join(', ') || `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
+          });
+          setSuggestionLabels(labels);
+          setSuggestions(reverseResults.slice(0, 3));
+          setShowSuggestions(true);
+        }
+
+        // Animate map to new location
+        mapRef.current?.animateToRegion(
+          { latitude, longitude, latitudeDelta: 0.005, longitudeDelta: 0.005 },
+          500,
+        );
+      }
+    } catch {
+      // Geocoding failed silently
+    } finally {
+      setGeocoding(false);
+    }
+  }, [onChange]);
+
+  // Debounced geocoding on address text change
+  const handleAddressChange = useCallback(
+    (text: string) => {
+      onChange({ address: text });
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(() => geocodeAddress(text), 1200);
+    },
+    [onChange, geocodeAddress],
+  );
+
+  // Select a suggestion
+  const selectSuggestion = useCallback(
+    (label: string, idx: number) => {
+      onChange({ address: label });
+      setShowSuggestions(false);
+      Keyboard.dismiss();
+      // Extract city/district from reverse geocode result
+      const result = suggestions[idx];
+      if (result) {
+        if (result.city) onChange({ city: result.city });
+        if (result.district) onChange({ district: result.district });
+      }
+    },
+    [onChange, suggestions],
+  );
+
+  // Reverse geocode when pin is dragged
+  const handleMarkerDragEnd = useCallback(
+    async (e: { nativeEvent: { coordinate: { latitude: number; longitude: number } } }) => {
+      const { latitude, longitude } = e.nativeEvent.coordinate;
+      setMapCoord({ latitude, longitude });
+      onChange({ latitude: String(latitude), longitude: String(longitude) });
+
+      try {
+        const results = await Location.reverseGeocodeAsync({ latitude, longitude });
+        if (results.length > 0) {
+          const r = results[0];
+          const parts = [r.street, r.streetNumber, r.district, r.city].filter(Boolean);
+          const newAddress = parts.join(', ') || form.address;
+          onChange({
+            address: newAddress,
+            city: r.city || form.city,
+            district: r.district || form.district,
+          });
+        }
+      } catch {
+        // Reverse geocode failed
+      }
+    },
+    [onChange, form.address, form.city, form.district],
+  );
+
   return (
     <View className="gap-4">
       <Text className="text-white text-lg font-semibold">Location</Text>
-      <Input
-        label="Address"
-        placeholder="e.g. Str. Victoriei 25, Sector 1"
-        value={form.address}
-        onChangeText={(v) => onChange({ address: v })}
-        error={errors.address}
-      />
+
+      {/* Address with autocomplete */}
+      <View className="w-full">
+        <Input
+          label="Address"
+          placeholder="Start typing an address..."
+          value={form.address}
+          onChangeText={handleAddressChange}
+          error={errors.address}
+        />
+        {geocoding && (
+          <View className="flex-row items-center mt-1.5">
+            <ActivityIndicator size="small" color="#c8e000" />
+            <Text className="text-[#8a8a8f] text-xs ml-2">Finding location...</Text>
+          </View>
+        )}
+
+        {/* Autocomplete suggestions */}
+        {showSuggestions && suggestionLabels.length > 0 && (
+          <View className="mt-1 bg-[#1a1a1f] rounded-lg border border-[#2a2a30] overflow-hidden">
+            {suggestionLabels.map((label, idx) => (
+              <Pressable
+                key={idx}
+                onPress={() => selectSuggestion(label, idx)}
+                className="px-3 py-3 border-b border-[#2a2a30]"
+                style={idx === suggestionLabels.length - 1 ? { borderBottomWidth: 0 } : undefined}
+              >
+                <Text className="text-white text-sm" numberOfLines={2}>
+                  {label}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        )}
+      </View>
+
       <View className="flex-row gap-3">
         <View className="flex-1">
           <Input
@@ -377,73 +566,160 @@ function StepLocation({
           />
         </View>
       </View>
-      <View className="flex-row gap-3">
-        <View className="flex-1">
-          <Input
-            label="Latitude (optional)"
-            placeholder="e.g. 44.4268"
-            value={form.latitude}
-            onChangeText={(v) => onChange({ latitude: v })}
-            keyboardType="numeric"
-          />
+
+      {/* Map with draggable pin */}
+      {showMap && mapCoord && (
+        <View
+        className="w-full rounded-lg overflow-hidden border border-[#2a2a30]"
+        style={{ height: 330 }}
+        onStartShouldSetResponder={() => true}
+        onMoveShouldSetResponder={() => true}
+      >
+          <MapView
+            ref={mapRef}
+            style={{ flex: 1 }}
+            initialRegion={{
+              ...mapCoord,
+              latitudeDelta: 0.005,
+              longitudeDelta: 0.005,
+            }}
+            userInterfaceStyle="dark"
+            zoomEnabled
+            scrollEnabled
+            pitchEnabled={false}
+            rotateEnabled={false}
+          >
+            <Marker
+              coordinate={mapCoord}
+              draggable
+              onDragEnd={handleMarkerDragEnd}
+            >
+              <View style={{ alignItems: 'center' }}>
+                <View style={{ width: 20, height: 20, borderRadius: 10, backgroundColor: '#c8e000', borderWidth: 3, borderColor: '#000', shadowColor: '#c8e000', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.6, shadowRadius: 6, elevation: 5 }} />
+                <View style={{ width: 0, height: 0, borderLeftWidth: 6, borderRightWidth: 6, borderTopWidth: 8, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderTopColor: '#c8e000', marginTop: -1 }} />
+              </View>
+            </Marker>
+          </MapView>
+          <View className="absolute bottom-2 left-2 right-2 bg-[#0c0c0f]/80 rounded-md px-3 py-1.5">
+            <Text className="text-[#8a8a8f] text-xs text-center">
+              Drag the pin to adjust the exact location
+            </Text>
+          </View>
         </View>
-        <View className="flex-1">
-          <Input
-            label="Longitude (optional)"
-            placeholder="e.g. 26.1025"
-            value={form.longitude}
-            onChangeText={(v) => onChange({ longitude: v })}
-            keyboardType="numeric"
-          />
-        </View>
-      </View>
-      <Card>
-        <Text className="text-[#8a8a8f] text-xs">
-          Tip: If you leave lat/lng empty, we will geocode the address automatically.
-        </Text>
-      </Card>
+      )}
     </View>
   );
 }
 
-function StepPreview({ form }: { form: DealFormData }) {
+function PreviewSection({
+  title,
+  stepNumber,
+  onEdit,
+  children,
+}: {
+  title: string;
+  stepNumber: number;
+  onEdit: (step: number) => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <Pressable
+      onPress={() => onEdit(stepNumber)}
+      style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+    >
+      <View className="flex-row items-center justify-between mb-2">
+        <Text className="text-[#8a8a8f] text-xs font-semibold uppercase tracking-wider">{title}</Text>
+        <Text className="text-[#c8e000] text-xs font-medium">Edit ›</Text>
+      </View>
+      {children}
+    </Pressable>
+  );
+}
+
+function StepPreview({
+  form,
+  onEditStep,
+}: {
+  form: DealFormData;
+  onEditStep: (step: number) => void;
+}) {
   const discount =
     form.discountType === 'percentage'
-      ? `${form.discountValue}% off`
-      : `${form.discountValue} RON off`;
+      ? `${form.discountValue}%`
+      : `${form.discountValue} RON`;
 
   return (
-    <View className="gap-4">
-      <Text className="text-white text-lg font-semibold">Review Your Deal</Text>
+    <View className="gap-5">
+      {/* Deal info card */}
+      <Pressable
+        onPress={() => onEditStep(1)}
+        className="bg-[#1a1a1f] rounded-2xl border border-[#2a2a30] px-6 pt-6 pb-5"
+        style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+      >
+        <View className="flex-row items-center justify-between">
+          <View className="flex-row items-center gap-2">
+            <Badge label={form.category || 'No Category'} variant="neutral" />
+            {form.isFlash ? <Badge label="Flash" variant="warning" /> : null}
+          </View>
+          <Text className="text-[#c8e000] text-base font-medium">Edit ›</Text>
+        </View>
+        <Text className="text-white text-2xl font-bold mt-4">{form.title || 'Untitled Deal'}</Text>
+        <Text className="text-[#8a8a8f] text-base mt-2 leading-6" numberOfLines={2}>{form.description || 'No description'}</Text>
+      </Pressable>
 
-      <Card>
-        <View className="flex-row items-start justify-between mb-3">
-          <Text className="text-white text-base font-semibold flex-1 mr-2">
-            {form.title || 'Untitled Deal'}
+      {/* Pricing row */}
+      <PreviewSection title="Pricing" stepNumber={2} onEdit={onEditStep}>
+        <View className="flex-row bg-[#1a1a1f] rounded-2xl border border-[#2a2a30] overflow-hidden">
+          <View className="flex-1 py-5 items-center">
+            <Text className="text-[#8a8a8f] text-sm">Original</Text>
+            <Text className="text-white text-lg font-semibold line-through mt-1.5">{form.originalPrice} RON</Text>
+          </View>
+          <View className="w-px bg-[#2a2a30]" />
+          <View className="flex-1 py-5 items-center">
+            <Text className="text-[#8a8a8f] text-sm">Now</Text>
+            <Text className="text-[#c8e000] text-xl font-bold mt-1.5">{form.discountedPrice} RON</Text>
+          </View>
+          <View className="w-px bg-[#2a2a30]" />
+          <View className="flex-1 py-5 items-center">
+            <Text className="text-[#8a8a8f] text-sm">Save</Text>
+            <Text className="text-[#22c55e] text-lg font-bold mt-1.5">{discount}</Text>
+          </View>
+        </View>
+      </PreviewSection>
+
+      {/* Terms row */}
+      <PreviewSection title="Terms" stepNumber={3} onEdit={onEditStep}>
+        <View className="flex-row bg-[#1a1a1f] rounded-2xl border border-[#2a2a30] overflow-hidden">
+          <View className="flex-1 py-5 items-center">
+            <Text className="text-[#8a8a8f] text-sm">Claims</Text>
+            <Text className="text-white text-xl font-bold mt-1.5">{form.maxClaims || '-'}</Text>
+          </View>
+          <View className="w-px bg-[#2a2a30]" />
+          <View className="flex-1 py-5 items-center">
+            <Text className="text-[#8a8a8f] text-sm">Expires</Text>
+            <Text className="text-white text-lg font-bold mt-1.5">{form.expiresAt || '-'}</Text>
+          </View>
+          {form.terms ? (
+            <>
+              <View className="w-px bg-[#2a2a30]" />
+              <View className="flex-1 py-5 items-center px-3">
+                <Text className="text-[#8a8a8f] text-sm">T&C</Text>
+                <Text className="text-white text-base mt-1.5 text-center" numberOfLines={1}>{form.terms}</Text>
+              </View>
+            </>
+          ) : null}
+        </View>
+      </PreviewSection>
+
+      {/* Location row */}
+      <PreviewSection title="Location" stepNumber={4} onEdit={onEditStep}>
+        <View className="bg-[#1a1a1f] rounded-2xl border border-[#2a2a30] px-6 py-5">
+          <Text className="text-white text-lg" numberOfLines={1}>{form.address || '-'}</Text>
+          <Text className="text-[#8a8a8f] text-base mt-1.5">
+            {[form.district, form.city].filter(Boolean).join(', ') || '-'}
           </Text>
-          {form.isFlash ? <Badge label="Flash" variant="warning" /> : null}
         </View>
-
-        <Badge label={form.category || 'No Category'} variant="neutral" />
-
-        <Text className="text-[#8a8a8f] text-sm mt-3 leading-5">
-          {form.description || 'No description'}
-        </Text>
-
-        <View className="h-px bg-[#2a2a30] my-4" />
-
-        <View className="gap-3">
-          <DetailRow label="Discount" value={discount} />
-          <DetailRow label="Original Price" value={`${form.originalPrice} RON`} />
-          <DetailRow label="Discounted Price" value={`${form.discountedPrice} RON`} accent />
-          <DetailRow label="Max Claims" value={form.maxClaims || '-'} />
-          <DetailRow label="Expires" value={form.expiresAt || '-'} />
-          <DetailRow label="Address" value={form.address || '-'} />
-          <DetailRow label="City" value={form.city || '-'} />
-          {form.district ? <DetailRow label="District" value={form.district} /> : null}
-          {form.terms ? <DetailRow label="Terms" value={form.terms} /> : null}
-        </View>
-      </Card>
+      </PreviewSection>
     </View>
   );
 }
@@ -552,28 +828,33 @@ export default function CreateDealScreen() {
   const handleSubmit = useCallback(async () => {
     setSubmitting(true);
     try {
-      const dealData = {
+      const dealData: Record<string, unknown> = {
         title: form.title.trim(),
         description: form.description.trim(),
         category: form.category,
-        discountType: form.discountType,
-        discountValue: Number(form.discountValue),
         originalPrice: Number(form.originalPrice),
         discountedPrice: Number(form.discountedPrice),
         maxClaims: Number(form.maxClaims),
+        expiresAt: new Date(form.expiresAt).toISOString(),
+        latitude: form.latitude ? Number(form.latitude) : 44.4268,
+        longitude: form.longitude ? Number(form.longitude) : 26.1025,
+        district: form.district.trim() || 'Sector 1',
+        city: form.city.trim() || 'Bucharest',
+        // Optional fields
+        address: form.address.trim() || undefined,
+        discountType: form.discountType,
+        discountValue: Number(form.discountValue),
         terms: form.terms.trim() || undefined,
         isFlash: form.isFlash,
-        expiresAt: new Date(form.expiresAt).toISOString(),
-        address: form.address.trim(),
-        city: form.city.trim() || 'Bucharest',
-        district: form.district.trim() || undefined,
-        latitude: form.latitude ? Number(form.latitude) : undefined,
-        longitude: form.longitude ? Number(form.longitude) : undefined,
       };
+      console.log('Submitting deal:', JSON.stringify(dealData));
       await api.post('/api/deals', dealData);
       setSuccess(true);
-    } catch {
-      setErrors({ submit: 'Failed to create deal. Please try again.' });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to create deal. Please try again.';
+      console.error('Create deal error:', err);
+      Alert.alert('Error', msg);
+      setErrors({ submit: msg });
     } finally {
       setSubmitting(false);
     }
@@ -618,7 +899,7 @@ export default function CreateDealScreen() {
           {step === 4 && (
             <StepLocation form={form} onChange={updateForm} errors={errors} />
           )}
-          {step === 5 && <StepPreview form={form} />}
+          {step === 5 && <StepPreview form={form} onEditStep={(s) => { setErrors({}); setStep(s); }} />}
 
           {/* Submit error */}
           {errors.submit ? (

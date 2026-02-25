@@ -1,8 +1,9 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  FlatList,
+  Keyboard,
+  Pressable,
   ScrollView,
   Share,
   Text,
@@ -10,14 +11,15 @@ import {
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import QRCode from 'react-native-qrcode-svg';
-import * as Sharing from 'expo-sharing';
-
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import MapView, { Marker } from 'react-native-maps';
+import * as Location from 'expo-location';
 import Header from '@/components/nav/Header';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
+import { KpiCard } from '@/components/ui/KpiCard';
 import { api } from '@/lib/api';
 
 // ---------------------------------------------------------------------------
@@ -25,8 +27,6 @@ import { api } from '@/lib/api';
 // ---------------------------------------------------------------------------
 
 type DealStatus = 'active' | 'paused' | 'expired' | 'draft';
-type ClaimStatus = 'claimed' | 'redeemed';
-
 interface Deal {
   dealId: string;
   title: string;
@@ -41,14 +41,9 @@ interface Deal {
   expiresAt: string;
   district: string;
   city: string;
-}
-
-interface Claim {
-  claimId: string;
-  userId: string;
-  claimedAt: string;
-  status: ClaimStatus;
-  redeemedAt?: string;
+  address?: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -58,31 +53,13 @@ interface Claim {
 function formatTimeRemaining(expiresAt: string): string {
   const diff = new Date(expiresAt).getTime() - Date.now();
   if (diff <= 0) return 'Expired';
-
   const totalMinutes = Math.floor(diff / 60000);
   const days = Math.floor(totalMinutes / 1440);
   const hours = Math.floor((totalMinutes % 1440) / 60);
   const minutes = totalMinutes % 60;
-
   if (days > 0) return `${days}d ${hours}h left`;
   if (hours > 0) return `${hours}h ${minutes}m left`;
   return `${minutes}m left`;
-}
-
-function formatTimestamp(iso: string): string {
-  const d = new Date(iso);
-  return d.toLocaleDateString('en-GB', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
-
-function truncateUserId(userId: string): string {
-  if (userId.length <= 14) return userId;
-  return `${userId.slice(0, 7)}...${userId.slice(-4)}`;
 }
 
 function discountPercent(original: number, discounted: number): number {
@@ -108,73 +85,131 @@ function SectionLabel({ label }: { label: string }) {
   );
 }
 
-function Divider() {
-  return <View className="h-px bg-[#2a2a30] my-5" />;
-}
-
-interface ClaimRowProps {
-  claim: Claim;
-  claimedLabel: string;
-  redeemedLabel: string;
-}
-
-function ClaimRow({ claim, claimedLabel, redeemedLabel }: ClaimRowProps) {
-  return (
-    <View className="flex-row items-center justify-between py-3 border-b border-[#2a2a30]">
-      <View className="flex-1 mr-3">
-        <Text className="text-white text-sm font-medium mb-0.5">
-          {truncateUserId(claim.userId)}
-        </Text>
-        <Text className="text-[#8a8a8f] text-xs">
-          {formatTimestamp(claim.claimedAt)}
-        </Text>
-      </View>
-      <Badge
-        label={claim.status === 'redeemed' ? redeemedLabel : claimedLabel}
-        variant={claim.status === 'redeemed' ? 'success' : 'accent'}
-      />
-    </View>
-  );
-}
-
 // ---------------------------------------------------------------------------
 // Screen
 // ---------------------------------------------------------------------------
 
 export default function DealDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const params = useLocalSearchParams<{ id: string; dealData?: string }>();
+  const id = params.id;
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
 
-  const [deal, setDeal] = useState<Deal | null>(null);
-  const [claims, setClaims] = useState<Claim[]>([]);
-  const [loading, setLoading] = useState(true);
+  const initialDeal = React.useMemo(() => {
+    if (params.dealData) {
+      try { return JSON.parse(params.dealData) as Deal; } catch { return null; }
+    }
+    return null;
+  }, [params.dealData]);
+
+  const [deal, setDeal] = useState<Deal | null>(initialDeal);
+  const [loading, setLoading] = useState(!initialDeal);
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editTitle, setEditTitle] = useState('');
   const [editDescription, setEditDescription] = useState('');
-  const [editMaxClaims, setEditMaxClaims] = useState('');
-  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [editAddress, setEditAddress] = useState('');
+  const [editCity, setEditCity] = useState('');
+  const [editDistrict, setEditDistrict] = useState('');
+  const [editLat, setEditLat] = useState<number | null>(null);
+  const [editLng, setEditLng] = useState<number | null>(null);
 
-  const fetchDeal = useCallback(async () => {
-    if (!id) return;
-    try {
-      const [dealData, claimsData] = await Promise.all([
-        api.get<Deal>(`/api/deals/${id}`),
-        api.get<Claim[]>(`/api/deals/${id}/claims`),
-      ]);
-      setDeal(dealData);
-      setClaims(claimsData);
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load deal');
-    }
-  }, [id]);
+  // Address autocomplete state
+  const [suggestions, setSuggestions] = useState<Location.LocationGeocodedAddress[]>([]);
+  const [suggestionLabels, setSuggestionLabels] = useState<string[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [geocoding, setGeocoding] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const mapRef = useRef<MapView>(null);
 
   useEffect(() => {
-    setLoading(true);
-    fetchDeal().finally(() => setLoading(false));
-  }, [fetchDeal]);
+    if (initialDeal) setLoading(false);
+  }, [initialDeal]);
+
+  // -- Address geocoding --
+
+  const geocodeAddress = useCallback(async (text: string) => {
+    if (text.length < 4) {
+      setSuggestionLabels([]);
+      setShowSuggestions(false);
+      return;
+    }
+    setGeocoding(true);
+    try {
+      const query = text.includes('Bucharest') ? text : `${text}, Bucharest, Romania`;
+      const results = await Location.geocodeAsync(query);
+      if (results.length > 0) {
+        const { latitude, longitude } = results[0];
+        setEditLat(latitude);
+        setEditLng(longitude);
+        const reverseResults = await Location.reverseGeocodeAsync({ latitude, longitude });
+        if (reverseResults.length > 0) {
+          const labels = reverseResults.slice(0, 3).map((r) => {
+            const parts = [r.street, r.streetNumber, r.district, r.city].filter(Boolean);
+            return parts.join(', ') || `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
+          });
+          setSuggestionLabels(labels);
+          setSuggestions(reverseResults.slice(0, 3));
+          setShowSuggestions(true);
+        }
+        mapRef.current?.animateToRegion(
+          { latitude, longitude, latitudeDelta: 0.005, longitudeDelta: 0.005 },
+          500,
+        );
+      }
+    } catch {
+      // Geocoding failed silently
+    } finally {
+      setGeocoding(false);
+    }
+  }, []);
+
+  const handleAddressChange = useCallback(
+    (text: string) => {
+      setEditAddress(text);
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(() => geocodeAddress(text), 1200);
+    },
+    [geocodeAddress],
+  );
+
+  const selectSuggestion = useCallback(
+    (label: string, idx: number) => {
+      setEditAddress(label);
+      setShowSuggestions(false);
+      Keyboard.dismiss();
+      const result = suggestions[idx];
+      if (result) {
+        if (result.city) setEditCity(result.city);
+        if (result.district) setEditDistrict(result.district);
+      }
+    },
+    [suggestions],
+  );
+
+  const handleMarkerDragEnd = useCallback(
+    async (e: { nativeEvent: { coordinate: { latitude: number; longitude: number } } }) => {
+      const { latitude, longitude } = e.nativeEvent.coordinate;
+      setEditLat(latitude);
+      setEditLng(longitude);
+      try {
+        const results = await Location.reverseGeocodeAsync({ latitude, longitude });
+        if (results.length > 0) {
+          const r = results[0];
+          const parts = [r.street, r.streetNumber, r.district, r.city].filter(Boolean);
+          setEditAddress(parts.join(', ') || editAddress);
+          if (r.city) setEditCity(r.city);
+          if (r.district) setEditDistrict(r.district);
+        }
+      } catch {
+        // Reverse geocode failed
+      }
+    },
+    [editAddress],
+  );
+
+  // -- Handlers --
 
   const handleShareQr = useCallback(async () => {
     if (!deal) return;
@@ -192,45 +227,42 @@ export default function DealDetailScreen() {
     if (!deal) return;
     setEditTitle(deal.title);
     setEditDescription(deal.description);
-    setEditMaxClaims(String(deal.maxClaims));
-    setSaveSuccess(false);
+    setEditAddress(deal.address || '');
+    setEditCity(deal.city || '');
+    setEditDistrict(deal.district || '');
+    setEditLat(deal.latitude ?? null);
+    setEditLng(deal.longitude ?? null);
+    setSuggestionLabels([]);
+    setShowSuggestions(false);
     setEditing(true);
   }, [deal]);
 
-  const handleCancelEdit = useCallback(() => {
-    setEditing(false);
-    setSaveSuccess(false);
-  }, []);
+  const handleCancelEdit = useCallback(() => setEditing(false), []);
 
   const handleSaveEdit = useCallback(async () => {
     if (!id || actionLoading) return;
     setActionLoading(true);
-    setSaveSuccess(false);
     try {
       const updates: Record<string, unknown> = {};
       if (editTitle !== deal?.title) updates.title = editTitle;
       if (editDescription !== deal?.description) updates.description = editDescription;
-      const parsedMaxClaims = parseInt(editMaxClaims, 10);
-      if (!isNaN(parsedMaxClaims) && parsedMaxClaims !== deal?.maxClaims) updates.maxClaims = parsedMaxClaims;
+      if (editAddress !== (deal?.address || '')) updates.address = editAddress;
+      if (editCity !== (deal?.city || '')) updates.city = editCity;
+      if (editDistrict !== (deal?.district || '')) updates.district = editDistrict;
+      if (editLat != null && editLat !== deal?.latitude) updates.latitude = editLat;
+      if (editLng != null && editLng !== deal?.longitude) updates.longitude = editLng;
 
-      if (Object.keys(updates).length === 0) {
-        setEditing(false);
-        return;
-      }
+      if (Object.keys(updates).length === 0) { setEditing(false); return; }
 
-      const result = await api.patch<{ deal: Deal }>(`/api/deals/${id}`, updates);
-      setDeal((prev) => prev ? { ...prev, ...updates, maxClaims: updates.maxClaims != null ? parsedMaxClaims : prev.maxClaims } : prev);
-      setSaveSuccess(true);
-      setTimeout(() => {
-        setEditing(false);
-        setSaveSuccess(false);
-      }, 1500);
+      await api.patch(`/api/deals/${id}`, updates);
+      setDeal((prev) => prev ? { ...prev, ...updates } as Deal : prev);
+      setEditing(false);
     } catch (err) {
       Alert.alert('Error', err instanceof Error ? err.message : 'Failed to update deal');
     } finally {
       setActionLoading(false);
     }
-  }, [id, actionLoading, deal, editTitle, editDescription, editMaxClaims]);
+  }, [id, actionLoading, deal, editTitle, editDescription, editAddress, editCity, editDistrict, editLat, editLng]);
 
   const handlePause = useCallback(async () => {
     if (!id || actionLoading) return;
@@ -240,9 +272,7 @@ export default function DealDetailScreen() {
       setDeal((prev) => prev ? { ...prev, status: 'paused' } : prev);
     } catch (err) {
       Alert.alert('Error', err instanceof Error ? err.message : 'Failed to pause deal');
-    } finally {
-      setActionLoading(false);
-    }
+    } finally { setActionLoading(false); }
   }, [id, actionLoading]);
 
   const handleActivate = useCallback(async () => {
@@ -253,20 +283,18 @@ export default function DealDetailScreen() {
       setDeal((prev) => prev ? { ...prev, status: 'active' } : prev);
     } catch (err) {
       Alert.alert('Error', err instanceof Error ? err.message : 'Failed to activate deal');
-    } finally {
-      setActionLoading(false);
-    }
+    } finally { setActionLoading(false); }
   }, [id, actionLoading]);
 
   const handleDelete = useCallback(async () => {
     if (!id || actionLoading) return;
     Alert.alert(
-      t('deals.detail.delete') ?? 'Delete Deal',
-      t('deals.detail.deleteConfirm') ?? 'Are you sure you want to delete this deal?',
+      t('deals.detail.delete'),
+      t('deals.detail.deleteConfirm'),
       [
-        { text: t('common.cancel') ?? 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: t('common.delete') ?? 'Delete',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: async () => {
             setActionLoading(true);
@@ -275,16 +303,16 @@ export default function DealDetailScreen() {
               router.back();
             } catch (err) {
               Alert.alert('Error', err instanceof Error ? err.message : 'Failed to delete deal');
-            } finally {
-              setActionLoading(false);
-            }
+            } finally { setActionLoading(false); }
           },
         },
       ],
     );
   }, [id, actionLoading, t]);
 
-  if (loading) {
+  // -- Loading / Error / Empty states --
+
+  if (loading && !deal) {
     return (
       <View className="flex-1 bg-[#0c0c0f]">
         <Header title={t('deals.myDeals')} showBack />
@@ -301,14 +329,7 @@ export default function DealDetailScreen() {
         <Header title={t('deals.myDeals')} showBack />
         <View className="flex-1 items-center justify-center px-8">
           <Text className="text-[#ef4444] text-center mb-4">{error}</Text>
-          <Button
-            variant="secondary"
-            title={t('common.retry') ?? 'Retry'}
-            onPress={() => {
-              setLoading(true);
-              fetchDeal().finally(() => setLoading(false));
-            }}
-          />
+          <Button variant="secondary" title={t('common.retry')} onPress={() => router.back()} />
         </View>
       </View>
     );
@@ -325,264 +346,325 @@ export default function DealDetailScreen() {
     );
   }
 
+  // -- Computed values --
+
   const progress = deal.maxClaims > 0 ? Math.min(deal.claimCount / deal.maxClaims, 1) : 0;
   const discount = discountPercent(deal.originalPrice, deal.discountedPrice);
   const timeLabel = formatTimeRemaining(deal.expiresAt);
   const expiryDate = new Date(deal.expiresAt).toLocaleDateString('en-GB', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
+    day: '2-digit', month: 'short', year: 'numeric',
   });
+  // -- Edit mode header action --
+
+  const headerRight = !editing ? (
+    <Pressable onPress={handleEdit} className="py-1 px-2">
+      <Text className="text-[#c8e000] text-sm font-semibold">{t('deals.detail.edit')}</Text>
+    </Pressable>
+  ) : undefined;
 
   return (
     <View className="flex-1 bg-[#0c0c0f]">
-      <Header title={deal.title} showBack />
+      <Header title={deal.title} showBack rightAction={headerRight} />
 
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ paddingBottom: 120 }}
+        contentContainerStyle={{ paddingBottom: editing ? 100 : 32 }}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="always"
       >
         <View className="px-4 pt-5">
 
-          {/* Status badge */}
+          {/* Hero: Status + Category + Title + Description */}
           <View className="mb-4">
-            <Badge
-              label={t(`deals.${deal.status}`)}
-              variant={statusBadgeVariant(deal.status)}
-            />
-          </View>
-
-          {/* Title */}
-          {editing ? (
-            <View className="mb-2">
-              <Input
-                label={t('deals.detail.title') ?? 'Title'}
-                value={editTitle}
-                onChangeText={setEditTitle}
-              />
+            <View className="flex-row items-center gap-2 mb-3">
+              <Badge label={t(`deals.${deal.status}`)} variant={statusBadgeVariant(deal.status)} />
+              <Badge label={deal.category} variant="neutral" />
             </View>
-          ) : (
-            <Text className="text-white text-2xl font-bold mb-2">{deal.title}</Text>
-          )}
 
-          {/* Category */}
-          <Badge label={deal.category} variant="neutral" />
-
-          {/* Description */}
-          {editing ? (
-            <View className="mt-4 mb-0">
-              <Input
-                label={t('deals.detail.description') ?? 'Description'}
-                value={editDescription}
-                onChangeText={setEditDescription}
-                multiline
-                numberOfLines={4}
-              />
-            </View>
-          ) : (
-            <Text className="text-[#8a8a8f] text-sm leading-5 mt-4 mb-0">
-              {deal.description}
-            </Text>
-          )}
-
-          <Divider />
-
-          {/* Price section */}
-          <SectionLabel label="Pricing" />
-          <View className="flex-row items-end gap-3 mb-1">
-            <Text className="text-[#8a8a8f] text-base line-through">
-              {deal.originalPrice} RON
-            </Text>
-            <Text className="text-white text-3xl font-bold">
-              {deal.discountedPrice} RON
-            </Text>
-            {discount > 0 && (
-              <View className="mb-1">
-                <Badge label={`-${discount}%`} variant="accent" />
-              </View>
-            )}
-          </View>
-
-          <Divider />
-
-          {/* Stats row */}
-          <SectionLabel label="Stats" />
-          <View className="flex-row gap-3 mb-4">
-            <Card className="flex-1 items-center">
-              <Text className="text-white text-xl font-bold">{deal.claimCount}</Text>
-              <Text className="text-[#8a8a8f] text-xs mt-0.5">{t('deals.claims')}</Text>
-            </Card>
             {editing ? (
-              <View className="flex-1">
+              <>
                 <Input
-                  label={t('deals.maxClaims') ?? 'Max Claims'}
-                  value={editMaxClaims}
-                  onChangeText={setEditMaxClaims}
-                  keyboardType="numeric"
+                  label={t('deals.detail.title')}
+                  value={editTitle}
+                  onChangeText={setEditTitle}
                 />
-              </View>
+                <View className="mt-3">
+                  <Input
+                    label={t('deals.detail.description')}
+                    value={editDescription}
+                    onChangeText={setEditDescription}
+                    multiline
+                    numberOfLines={3}
+                  />
+                </View>
+              </>
             ) : (
-              <Card className="flex-1 items-center">
-                <Text className="text-white text-xl font-bold">{deal.maxClaims}</Text>
-                <Text className="text-[#8a8a8f] text-xs mt-0.5">{t('deals.maxClaims')}</Text>
-              </Card>
+              <>
+                <Text className="text-white text-2xl font-bold mb-2">{deal.title}</Text>
+                <Text className="text-[#8a8a8f] text-sm leading-5">{deal.description}</Text>
+              </>
             )}
-            <Card className="flex-1 items-center">
-              <Text className="text-white text-xl font-bold">{deal.redemptionCount}</Text>
-              <Text className="text-[#8a8a8f] text-xs mt-0.5">{t('deals.detail.redeemed')}</Text>
-            </Card>
           </View>
 
-          {/* Claims progress bar (large) */}
-          <View className="mb-1">
-            <View className="h-3 bg-[#2a2a30] rounded-full overflow-hidden">
-              <View
-                className="h-full bg-[#c8e000] rounded-full"
-                style={{ width: `${progress * 100}%` }}
+          {/* Edit: address */}
+          {editing && (
+            <View className="mb-4">
+              <Text className="text-[#8a8a8f] text-xs font-semibold uppercase tracking-widest mb-3">
+                {t('deals.detail.location')}
+              </Text>
+
+              <Input
+                label="Address"
+                placeholder="Start typing an address..."
+                value={editAddress}
+                onChangeText={handleAddressChange}
               />
-            </View>
-          </View>
-          <Text className="text-[#8a8a8f] text-xs mt-1.5">
-            {deal.claimCount}/{deal.maxClaims} {t('deals.claims').toLowerCase()}
-          </Text>
+              {geocoding && (
+                <View className="flex-row items-center mt-1.5">
+                  <ActivityIndicator size="small" color="#c8e000" />
+                  <Text className="text-[#8a8a8f] text-xs ml-2">Finding location...</Text>
+                </View>
+              )}
 
-          <Divider />
+              {showSuggestions && suggestionLabels.length > 0 && (
+                <View className="mt-1 bg-[#1a1a1f] rounded-lg border border-[#2a2a30] overflow-hidden">
+                  {suggestionLabels.map((label, idx) => (
+                    <Pressable
+                      key={idx}
+                      onPress={() => selectSuggestion(label, idx)}
+                      className="px-3 py-3 border-b border-[#2a2a30]"
+                      style={idx === suggestionLabels.length - 1 ? { borderBottomWidth: 0 } : undefined}
+                    >
+                      <Text className="text-white text-sm" numberOfLines={2}>{label}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              )}
 
-          {/* Location info */}
-          <SectionLabel label="Location" />
-          <View className="flex-row items-center gap-2">
-            <Text className="text-white text-sm font-medium">{deal.district}</Text>
-            <Text className="text-[#2a2a30]">|</Text>
-            <Text className="text-[#8a8a8f] text-sm">{deal.city}</Text>
-          </View>
+              <View className="flex-row gap-3 mt-3">
+                <View className="flex-1">
+                  <Input
+                    label="City"
+                    value={editCity}
+                    onChangeText={setEditCity}
+                  />
+                </View>
+                <View className="flex-1">
+                  <Input
+                    label="District"
+                    value={editDistrict}
+                    onChangeText={setEditDistrict}
+                  />
+                </View>
+              </View>
 
-          <Divider />
-
-          {/* Expiry */}
-          <SectionLabel label={t('deals.timeLeft')} />
-          <View className="flex-row items-center justify-between">
-            <Text className="text-white text-sm">{expiryDate}</Text>
-            <Text
-              className={`text-sm font-semibold ${
-                deal.status === 'expired' ? 'text-[#ef4444]' : 'text-[#c8e000]'
-              }`}
-            >
-              {timeLabel}
-            </Text>
-          </View>
-
-          <Divider />
-
-          {/* QR Code */}
-          <SectionLabel label={t('deals.detail.shareQr')} />
-          <Card className="items-center py-6">
-            <View className="p-4 bg-white rounded-xl mb-4">
-              <QRCode
-                value={deal.dealId}
-                size={160}
-                backgroundColor="white"
-                color="#0c0c0f"
-              />
-            </View>
-            <Text className="text-[#8a8a8f] text-xs mb-4 text-center">
-              {deal.dealId}
-            </Text>
-            <Button
-              variant="secondary"
-              title={t('deals.detail.shareQr')}
-              onPress={handleShareQr}
-            />
-          </Card>
-
-          <Divider />
-
-          {/* Claim history */}
-          <SectionLabel label={t('deals.detail.claimHistory')} />
-          {claims.length === 0 ? (
-            <Text className="text-[#8a8a8f] text-sm">{t('common.noData')}</Text>
-          ) : (
-            <View>
-              {claims.map((claim) => (
-                <ClaimRow
-                  key={claim.claimId}
-                  claim={claim}
-                  claimedLabel={t('deals.detail.claimed')}
-                  redeemedLabel={t('deals.detail.redeemed')}
-                />
-              ))}
+              {editLat != null && editLng != null && (
+                <View
+                  className="mt-3 w-full rounded-lg overflow-hidden border border-[#2a2a30]"
+                  style={{ height: 250 }}
+                  onStartShouldSetResponder={() => true}
+                  onMoveShouldSetResponder={() => true}
+                >
+                  <MapView
+                    ref={mapRef}
+                    style={{ flex: 1 }}
+                    initialRegion={{
+                      latitude: editLat,
+                      longitude: editLng,
+                      latitudeDelta: 0.005,
+                      longitudeDelta: 0.005,
+                    }}
+                    userInterfaceStyle="dark"
+                    zoomEnabled
+                    scrollEnabled
+                    pitchEnabled={false}
+                    rotateEnabled={false}
+                  >
+                    <Marker
+                      coordinate={{ latitude: editLat, longitude: editLng }}
+                      draggable
+                      onDragEnd={handleMarkerDragEnd}
+                    >
+                      <View style={{ alignItems: 'center' }}>
+                        <View style={{ width: 20, height: 20, borderRadius: 10, backgroundColor: '#c8e000', borderWidth: 3, borderColor: '#000', shadowColor: '#c8e000', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.6, shadowRadius: 6, elevation: 5 }} />
+                        <View style={{ width: 0, height: 0, borderLeftWidth: 6, borderRightWidth: 6, borderTopWidth: 8, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderTopColor: '#c8e000', marginTop: -1 }} />
+                      </View>
+                    </Marker>
+                  </MapView>
+                  <View className="absolute bottom-2 left-2 right-2 bg-[#0c0c0f]/80 rounded-md px-3 py-1.5">
+                    <Text className="text-[#8a8a8f] text-xs text-center">
+                      Drag the pin to adjust the exact location
+                    </Text>
+                  </View>
+                </View>
+              )}
             </View>
           )}
 
-          <Divider />
+          {/* View-only sections */}
+          {!editing && (
+            <>
+              {/* Pricing Card */}
+              <Card className="mb-3">
+                <Text className="text-[#8a8a8f] text-xs font-semibold uppercase tracking-widest mb-2">
+                  {t('deals.detail.pricing')}
+                </Text>
+                <View className="flex-row items-baseline gap-3">
+                  <Text className="text-[#8a8a8f] text-sm line-through">
+                    {deal.originalPrice} RON
+                  </Text>
+                  <Text className="text-white text-2xl font-bold">
+                    {deal.discountedPrice} RON
+                  </Text>
+                  {discount > 0 && <Badge label={`-${discount}%`} variant="accent" />}
+                </View>
+              </Card>
 
-          {/* Status management actions */}
-          <SectionLabel label={t('deals.detail.manage') ?? 'Manage'} />
-          <View className="gap-3 mb-4">
-            {deal.status === 'active' && (
-              <Button
-                variant="secondary"
-                title={t('deals.detail.pause') ?? 'Pause Deal'}
-                onPress={handlePause}
-                disabled={actionLoading}
-                fullWidth
-              />
-            )}
-            {(deal.status === 'paused' || deal.status === 'draft') && (
-              <Button
-                variant="primary"
-                title={t('deals.detail.activate') ?? 'Activate Deal'}
-                onPress={handleActivate}
-                disabled={actionLoading}
-                fullWidth
-              />
-            )}
-            <Button
-              variant="secondary"
-              title={t('deals.detail.delete') ?? 'Delete Deal'}
-              onPress={handleDelete}
-              disabled={actionLoading}
-              fullWidth
-            />
-          </View>
+              {/* Stats Row */}
+              <View className="flex-row gap-3 mb-3">
+                <KpiCard title={t('deals.claims')} value={deal.claimCount} />
+                <KpiCard title={t('deals.maxClaims')} value={deal.maxClaims} />
+                <KpiCard title={t('deals.detail.redeemed')} value={deal.redemptionCount ?? 0} />
+              </View>
+
+              {/* Progress Bar */}
+              <Card className="mb-3">
+                <View className="flex-row items-center justify-between mb-2">
+                  <Text className="text-[#8a8a8f] text-xs">{t('deals.detail.progress')}</Text>
+                  <Text className="text-[#8a8a8f] text-xs">
+                    {deal.claimCount}/{deal.maxClaims}
+                  </Text>
+                </View>
+                <View className="h-2 bg-[#2a2a30] rounded-full overflow-hidden">
+                  <View
+                    className="h-full bg-[#c8e000] rounded-full"
+                    style={{ width: `${progress * 100}%` }}
+                  />
+                </View>
+              </Card>
+
+              {/* Location & Expiry Card */}
+              <Card className="mb-3">
+                <View className="flex-row items-center justify-between pb-3 border-b border-[#2a2a30]">
+                  <Text className="text-[#8a8a8f] text-xs uppercase tracking-wide">
+                    {t('deals.detail.location')}
+                  </Text>
+                  <Text className="text-white text-sm font-medium">
+                    {deal.district} · {deal.city}
+                  </Text>
+                </View>
+                <View className="flex-row items-center justify-between pt-3">
+                  <Text className="text-[#8a8a8f] text-xs uppercase tracking-wide">
+                    {t('deals.detail.expiry')}
+                  </Text>
+                  <View className="flex-row items-center gap-2">
+                    <Text className="text-white text-sm">{expiryDate}</Text>
+                    <Text className={`text-xs font-semibold ${
+                      deal.status === 'expired' ? 'text-[#ef4444]' : 'text-[#c8e000]'
+                    }`}>
+                      {timeLabel}
+                    </Text>
+                  </View>
+                </View>
+              </Card>
+
+              {/* Actions Card */}
+              <Card className="mb-3">
+                <View className="flex-row gap-3">
+                  <View className="flex-1">
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      title={t('dashboard.scanQr')}
+                      onPress={() => router.push('/(business)/scanner')}
+                      fullWidth
+                    />
+                  </View>
+                  <View className="flex-1">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      title={t('deals.detail.shareQr')}
+                      onPress={handleShareQr}
+                      fullWidth
+                    />
+                  </View>
+                </View>
+              </Card>
+            </>
+          )}
+
+          {/* Manage Section */}
+          {!editing && (
+            <Card className="mb-4">
+              <Text className="text-[#8a8a8f] text-xs font-semibold uppercase tracking-widest mb-3">
+                {t('deals.detail.manage')}
+              </Text>
+              <View className="gap-2">
+                {deal.status === 'active' && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    title={t('deals.detail.pause')}
+                    onPress={handlePause}
+                    disabled={actionLoading}
+                    fullWidth
+                  />
+                )}
+                {(deal.status === 'paused' || deal.status === 'draft') && (
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    title={t('deals.detail.activate')}
+                    onPress={handleActivate}
+                    disabled={actionLoading}
+                    fullWidth
+                  />
+                )}
+                <Button
+                  variant="danger"
+                  size="sm"
+                  title={t('deals.detail.delete')}
+                  onPress={handleDelete}
+                  disabled={actionLoading}
+                  fullWidth
+                />
+              </View>
+            </Card>
+          )}
+
         </View>
       </ScrollView>
 
-      {/* Bottom action bar */}
-      <View className="absolute bottom-0 left-0 right-0 px-4 pb-8 pt-4 bg-[#0c0c0f] border-t border-[#2a2a30]">
-        {editing ? (
-          <View className="gap-3">
-            {saveSuccess && (
-              <Text className="text-[#c8e000] text-sm text-center font-medium">
-                Deal updated successfully
-              </Text>
-            )}
-            <Button
-              variant="primary"
-              title={actionLoading ? (t('common.saving') ?? 'Saving...') : (t('common.save') ?? 'Save Changes')}
-              onPress={handleSaveEdit}
-              disabled={actionLoading}
-              fullWidth
-              size="lg"
-            />
-            <Button
-              variant="secondary"
-              title={t('common.cancel') ?? 'Cancel'}
-              onPress={handleCancelEdit}
-              disabled={actionLoading}
-              fullWidth
-            />
+      {/* Edit mode bottom bar */}
+      {editing && (
+        <View
+          className="px-4 pt-3 bg-[#0c0c0f] border-t border-[#2a2a30]"
+          style={{ paddingBottom: insets.bottom + 8 }}
+        >
+          <View className="flex-row gap-3">
+            <View className="flex-1">
+              <Button
+                variant="secondary"
+                title={t('common.cancel')}
+                onPress={handleCancelEdit}
+                disabled={actionLoading}
+                fullWidth
+              />
+            </View>
+            <View className="flex-1">
+              <Button
+                variant="primary"
+                title={actionLoading ? t('common.saving') : t('common.save')}
+                onPress={handleSaveEdit}
+                loading={actionLoading}
+                disabled={actionLoading}
+                fullWidth
+              />
+            </View>
           </View>
-        ) : (
-          <Button
-            variant="secondary"
-            title={t('deals.detail.edit')}
-            onPress={handleEdit}
-            fullWidth
-            size="lg"
-          />
-        )}
-      </View>
+        </View>
+      )}
     </View>
   );
 }

@@ -300,7 +300,7 @@ export default function SignupScreen() {
         <ScrollView
           className="flex-1"
           contentContainerStyle={{ flexGrow: 1 }}
-          keyboardShouldPersistTaps="handled"
+          keyboardShouldPersistTaps="always"
           showsVerticalScrollIndicator={false}
         >
           <View className="flex-1 px-6 pt-20 pb-10 gap-6">
@@ -384,7 +384,7 @@ export default function SignupScreen() {
       <ScrollView
         className="flex-1"
         contentContainerStyle={{ flexGrow: 1 }}
-        keyboardShouldPersistTaps="handled"
+        keyboardShouldPersistTaps="always"
         showsVerticalScrollIndicator={false}
       >
         <View className="px-6 pt-14 pb-10 gap-6">
