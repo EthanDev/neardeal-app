@@ -422,6 +422,7 @@ export default function DealDetailScreen() {
                   label={t('deals.detail.title')}
                   value={editTitle}
                   onChangeText={setEditTitle}
+                  autoFocus
                 />
                 <View className="mt-3">
                   <Input

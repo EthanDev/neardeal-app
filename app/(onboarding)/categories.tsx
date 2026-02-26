@@ -246,7 +246,7 @@ export default function CategoriesScreen() {
               <LocationPinIcon color={locationState === 'denied' ? '#999' : '#7a9200'} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 13, fontWeight: '600', color: '#111' }}>
+              <Text style={{ fontSize: 13, fontFamily: 'GoogleSans-SemiBold', color: '#111' }}>
                 {locationState === 'denied'
                   ? t('onboarding.categories.locationDenied', { defaultValue: 'Location not available' })
                   : t('onboarding.categories.locationPrompt', { defaultValue: 'Enable location for nearby deals' })}
@@ -268,7 +268,7 @@ export default function CategoriesScreen() {
                   borderRadius: 8,
                 }}
               >
-                <Text style={{ fontSize: 12, fontWeight: '700', color: '#111' }}>
+                <Text style={{ fontSize: 12, fontFamily: 'GoogleSans-Bold', color: '#111' }}>
                   {t('onboarding.categories.enableLocation', { defaultValue: 'Enable' })}
                 </Text>
               </View>

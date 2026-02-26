@@ -84,7 +84,7 @@ function SwipeableRow({ item, onRemove }: { item: NotifItem; onRemove: () => voi
   return (
     <Animated.View style={{ overflow: 'hidden', maxHeight: rowHeight.interpolate({ inputRange: [0, 1], outputRange: [0, 200] }) }}>
       <View style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 100, backgroundColor: '#ef4444', alignItems: 'center', justifyContent: 'center' }}>
-        <Text style={{ color: '#fff', fontSize: 13, fontWeight: '600' }}>Delete</Text>
+        <Text style={{ color: '#fff', fontSize: 13, fontFamily: 'GoogleSans-SemiBold' }}>Delete</Text>
       </View>
 
       <Animated.View
@@ -120,7 +120,7 @@ function SwipeableRow({ item, onRemove }: { item: NotifItem; onRemove: () => voi
             <Icon size={14} color={color} />
           </View>
           <View style={{ flex: 1, marginRight: 8 }}>
-            <Text style={{ fontSize: 13, fontWeight: '700', color: '#fff', marginBottom: 2 }}>{item.title}</Text>
+            <Text style={{ fontSize: 13, fontFamily: 'GoogleSans-Bold', color: '#fff', marginBottom: 2 }}>{item.title}</Text>
             <Text style={{ fontSize: 12, color: '#8a8a8f', lineHeight: 16 }} numberOfLines={2}>{item.body}</Text>
             <Text style={{ fontSize: 11, color: '#666', marginTop: 3 }}>{item.time}</Text>
           </View>
@@ -168,10 +168,10 @@ export default function NotificationsScreen() {
         >
           <ChevronLeftIcon size={18} color="#fff" />
         </Pressable>
-        <Text style={{ fontSize: 17, fontWeight: '700', color: '#fff' }}>Notifications</Text>
+        <Text style={{ fontSize: 17, fontFamily: 'GoogleSans-Bold', color: '#fff' }}>Notifications</Text>
         {items.length > 0 ? (
           <Pressable onPress={handleClearAll} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <Text style={{ fontSize: 13, fontWeight: '600', color: '#c8e000' }}>Mark read</Text>
+            <Text style={{ fontSize: 13, fontFamily: 'GoogleSans-SemiBold', color: '#c8e000' }}>Mark read</Text>
           </Pressable>
         ) : (
           <View style={{ width: 34 }} />

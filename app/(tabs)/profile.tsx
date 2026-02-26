@@ -310,6 +310,7 @@ export default function ProfileScreen() {
                   onChangeText={setName}
                   className="text-[22px] font-bold text-white border-b border-[#c8e000] pb-1"
                   autoFocus
+                  textContentType="none"
                   placeholderTextColor="#666"
                 />
               ) : (
@@ -503,6 +504,7 @@ export default function ProfileScreen() {
                   value={district}
                   onChangeText={setDistrict}
                   className="text-[13px] text-white border-b border-[#c8e000] min-w-[80px] text-right pb-1"
+                  textContentType="none"
                   placeholderTextColor="#666"
                 />
               ) : (
@@ -656,7 +658,7 @@ export default function ProfileScreen() {
                             className="px-4 py-3.5"
                           >
                             <View className="flex-row items-center justify-between">
-                              <Text className="text-[14px] text-white flex-1 mr-3" style={{ fontWeight: '500' }}>
+                              <Text className="text-[14px] text-white flex-1 mr-3" style={{ fontFamily: 'GoogleSans-Medium' }}>
                                 {item.q}
                               </Text>
                               <Text className="text-[#666] text-[16px]">

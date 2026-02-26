@@ -174,7 +174,7 @@ export default function Walkthrough() {
         >
           <Text
             style={{
-              fontFamily: 'DMSans-Bold',
+              fontFamily: 'GoogleSans-Bold',
               fontSize: 26,
               color: '#111111',
               textAlign: 'center',
@@ -185,7 +185,7 @@ export default function Walkthrough() {
           </Text>
           <Text
             style={{
-              fontFamily: 'DMSans-Regular',
+              fontFamily: 'GoogleSans-Regular',
               fontSize: 14,
               color: '#888888',
               textAlign: 'center',
@@ -233,7 +233,7 @@ export default function Walkthrough() {
         >
           <Text
             style={{
-              fontFamily: 'DMSans-Regular',
+              fontFamily: 'GoogleSans-Regular',
               fontSize: 14,
               color: '#888888',
             }}
@@ -278,7 +278,7 @@ export default function Walkthrough() {
         >
           <Text
             style={{
-              fontFamily: 'DMSans-Bold',
+              fontFamily: 'GoogleSans-Bold',
               fontSize: 17,
               color: isLastPage ? '#111111' : '#ffffff',
             }}

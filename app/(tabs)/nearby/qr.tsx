@@ -31,7 +31,7 @@ export default function QRScreen() {
           {t('consumer.qr.yourDeal')}
         </Text>
 
-        <Text style={{ fontSize: 28, fontWeight: 'bold', color: '#ffffff', marginBottom: 4, textAlign: 'center' }}>
+        <Text style={{ fontSize: 28, fontFamily: 'GoogleSans-Bold', color: '#ffffff', marginBottom: 4, textAlign: 'center' }}>
           {business}
         </Text>
 
@@ -43,7 +43,7 @@ export default function QRScreen() {
           <QRCode value={qrValue} size={180} />
         </View>
 
-        <Text style={{ fontSize: 48, fontWeight: 'bold', color: '#c8e000', marginBottom: 12 }}>
+        <Text style={{ fontSize: 48, fontFamily: 'GoogleSans-Bold', color: '#c8e000', marginBottom: 12 }}>
           {discount}
         </Text>
 
@@ -62,7 +62,7 @@ export default function QRScreen() {
           className="rounded-2xl w-full items-center"
           style={{ backgroundColor: 'rgba(255,255,255,0.09)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', padding: 16 }}
         >
-          <Text style={{ color: '#ffffff', fontSize: 15, fontWeight: '600' }}>
+          <Text style={{ color: '#ffffff', fontSize: 15, fontFamily: 'GoogleSans-SemiBold' }}>
             {t('consumer.qr.done', { defaultValue: 'Done' })}
           </Text>
         </Pressable>

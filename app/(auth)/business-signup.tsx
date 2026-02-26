@@ -379,7 +379,7 @@ export default function BusinessSignupScreen() {
             <View className="items-center pb-4">
               <Text
                 className="text-[#c8e000] text-4xl font-bold tracking-tight"
-                style={{ fontFamily: 'Syne_700Bold' }}
+                style={{ fontFamily: 'GoogleSans-Bold' }}
               >
                 NearDeal
               </Text>
@@ -475,7 +475,7 @@ export default function BusinessSignupScreen() {
           <View className="items-center">
             <Text
               className="text-[#c8e000] text-3xl font-bold tracking-tight"
-              style={{ fontFamily: 'Syne_700Bold' }}
+              style={{ fontFamily: 'GoogleSans-Bold' }}
             >
               NearDeal
             </Text>
@@ -508,6 +508,7 @@ export default function BusinessSignupScreen() {
                     value={value}
                     onChangeText={onChange}
                     autoCapitalize="words"
+                    autoFocus
                     error={resolveError(errors1.businessName?.message)}
                   />
                 )}

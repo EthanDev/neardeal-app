@@ -670,7 +670,7 @@ export default function ScannerScreen() {
                 }}
                 hitSlop={12}
               >
-                <Text style={{ color: '#8a8a8f', fontSize: 18, fontWeight: '600' }}>✕</Text>
+                <Text style={{ color: '#8a8a8f', fontSize: 18, fontFamily: 'GoogleSans-SemiBold' }}>✕</Text>
               </Pressable>
             </View>
             <View style={styles.manualRow}>
@@ -678,6 +678,7 @@ export default function ScannerScreen() {
                 style={styles.manualInput}
                 placeholder={t('scanner.enterCode')}
                 placeholderTextColor="#5a5a5f"
+                textContentType="none"
                 value={manualCode}
                 onChangeText={setManualCode}
                 autoCapitalize="none"
@@ -741,7 +742,7 @@ const styles = StyleSheet.create({
   topTitle: {
     color: '#ffffff',
     fontSize: 18,
-    fontWeight: '700',
+    fontFamily: 'GoogleSans-Bold',
     letterSpacing: 0.3,
   },
 
@@ -788,7 +789,7 @@ const styles = StyleSheet.create({
   permissionTitle: {
     color: '#ffffff',
     fontSize: 20,
-    fontWeight: '700',
+    fontFamily: 'GoogleSans-Bold',
     textAlign: 'center',
     marginBottom: 12,
   },
@@ -832,7 +833,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginTop: 20,
     textAlign: 'center',
-    fontWeight: '500',
+    fontFamily: 'GoogleSans-Medium',
   },
 
   // Torch
@@ -857,7 +858,7 @@ const styles = StyleSheet.create({
   processingText: {
     color: '#ffffff',
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: 'GoogleSans-SemiBold',
     backgroundColor: 'rgba(0,0,0,0.7)',
     paddingHorizontal: 24,
     paddingVertical: 12,
@@ -899,7 +900,7 @@ const styles = StyleSheet.create({
   resultTitle: {
     color: '#ffffff',
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: 'GoogleSans-SemiBold',
     textAlign: 'center',
     lineHeight: 22,
   },
@@ -913,7 +914,7 @@ const styles = StyleSheet.create({
   resultDetailLabel: {
     color: '#8a8a8f',
     fontSize: 12,
-    fontWeight: '500',
+    fontFamily: 'GoogleSans-Medium',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 2,
@@ -921,7 +922,7 @@ const styles = StyleSheet.create({
   resultDetailValue: {
     color: '#ffffff',
     fontSize: 15,
-    fontWeight: '600',
+    fontFamily: 'GoogleSans-SemiBold',
   },
 
   // Manual entry
@@ -945,7 +946,7 @@ const styles = StyleSheet.create({
   manualIconLabel: {
     color: '#ffffff',
     fontSize: 13,
-    fontWeight: '600',
+    fontFamily: 'GoogleSans-SemiBold',
   },
   manualContainer: {
     backgroundColor: 'rgba(26,26,31,0.95)',
@@ -964,7 +965,7 @@ const styles = StyleSheet.create({
   manualLabel: {
     color: '#8a8a8f',
     fontSize: 12,
-    fontWeight: '600',
+    fontFamily: 'GoogleSans-SemiBold',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
@@ -998,6 +999,6 @@ const styles = StyleSheet.create({
   manualButtonText: {
     color: '#0c0c0f',
     fontSize: 15,
-    fontWeight: '700',
+    fontFamily: 'GoogleSans-Bold',
   },
 });

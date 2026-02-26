@@ -252,7 +252,7 @@ export default function ResetPasswordScreen() {
               <View className="gap-2">
                 <Text
                   className="text-white text-3xl font-bold"
-                  style={{ fontFamily: 'Syne_700Bold' }}
+                  style={{ fontFamily: 'GoogleSans-Bold' }}
                 >
                   {t('auth.reset.title')}
                 </Text>
@@ -273,6 +273,7 @@ export default function ResetPasswordScreen() {
                       onChangeText={onChange}
                       keyboardType="email-address"
                       autoCapitalize="none"
+                      autoFocus
                       error={resolveFieldError(t, emailForm.formState.errors.email?.message)}
                     />
                   )}
@@ -301,7 +302,7 @@ export default function ResetPasswordScreen() {
               <View className="gap-2">
                 <Text
                   className="text-white text-3xl font-bold"
-                  style={{ fontFamily: 'Syne_700Bold' }}
+                  style={{ fontFamily: 'GoogleSans-Bold' }}
                 >
                   {t('auth.reset.title')}
                 </Text>
@@ -328,6 +329,7 @@ export default function ResetPasswordScreen() {
                           style={{ color: '#ffffff' }}
                           placeholder={t('auth.signup.confirmEmail.codePlaceholder')}
                           placeholderTextColor="#8a8a8f"
+                          textContentType="none"
                           value={value}
                           onChangeText={(text) => {
                             // Only allow digits, max 6

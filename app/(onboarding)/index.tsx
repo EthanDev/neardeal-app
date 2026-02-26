@@ -90,7 +90,7 @@ export default function OnboardingHero() {
               }}
             />
             <Text
-              style={{ fontFamily: 'DMSans-Medium', fontSize: 13, color: 'rgba(255,255,255,0.7)' }}
+              style={{ fontFamily: 'GoogleSans-Medium', fontSize: 13, color: 'rgba(255,255,255,0.7)' }}
             >
               {t('onboarding.pill')}
             </Text>
@@ -99,14 +99,14 @@ export default function OnboardingHero() {
 
         {/* Hero title */}
         <View className="mb-5">
-          <Text style={{ fontFamily: 'Syne-Bold', fontSize: 44, color: '#ffffff', lineHeight: 50 }}>
+          <Text style={{ fontFamily: 'GoogleSans-Bold', fontSize: 44, color: '#ffffff', lineHeight: 50 }}>
             {t('onboarding.heroLine1')}
           </Text>
-          <Text style={{ fontFamily: 'Syne-Bold', fontSize: 44, color: '#ffffff', lineHeight: 50 }}>
+          <Text style={{ fontFamily: 'GoogleSans-Bold', fontSize: 44, color: '#ffffff', lineHeight: 50 }}>
             {t('onboarding.heroLine2')}
           </Text>
           <Text
-            style={{ fontFamily: 'Syne-Bold', fontSize: 44, color: '#c8e000', lineHeight: 50 }}
+            style={{ fontFamily: 'GoogleSans-Bold', fontSize: 44, color: '#c8e000', lineHeight: 50 }}
           >
             {t('onboarding.heroLine3')}
           </Text>
@@ -115,7 +115,7 @@ export default function OnboardingHero() {
         {/* Subtitle */}
         <Text
           style={{
-            fontFamily: 'DMSans-Regular',
+            fontFamily: 'GoogleSans-Regular',
             fontSize: 16,
             color: 'rgba(255,255,255,0.4)',
             lineHeight: 24,
@@ -142,7 +142,7 @@ export default function OnboardingHero() {
             >
               <Text
                 style={{
-                  fontFamily: 'Syne-Bold',
+                  fontFamily: 'GoogleSans-Bold',
                   fontSize: 20,
                   color: '#c8e000',
                   marginBottom: 4,
@@ -152,7 +152,7 @@ export default function OnboardingHero() {
               </Text>
               <Text
                 style={{
-                  fontFamily: 'DMSans-Regular',
+                  fontFamily: 'GoogleSans-Regular',
                   fontSize: 12,
                   color: 'rgba(255,255,255,0.4)',
                 }}
@@ -187,18 +187,18 @@ export default function OnboardingHero() {
             marginBottom: 16,
           }}
         >
-          <Text style={{ fontFamily: 'DMSans-Bold', fontSize: 17, color: '#111111' }}>
+          <Text style={{ fontFamily: 'GoogleSans-Bold', fontSize: 17, color: '#111111' }}>
             {t('onboarding.getStarted')}
           </Text>
         </TouchableOpacity>
 
         {/* Sign in link */}
         <View className="flex-row justify-center mb-4">
-          <Text style={{ fontFamily: 'DMSans-Regular', fontSize: 14, color: '#888888' }}>
+          <Text style={{ fontFamily: 'GoogleSans-Regular', fontSize: 14, color: '#888888' }}>
             {t('onboarding.hasAccount')}{' '}
           </Text>
           <TouchableOpacity onPress={() => router.push('/(auth)/login')}>
-            <Text style={{ fontFamily: 'DMSans-Bold', fontSize: 14, color: '#111111' }}>
+            <Text style={{ fontFamily: 'GoogleSans-Bold', fontSize: 14, color: '#111111' }}>
               {t('onboarding.signIn')}
             </Text>
           </TouchableOpacity>
@@ -216,7 +216,7 @@ export default function OnboardingHero() {
             alignSelf: 'center',
           }}
         >
-          <Text style={{ fontFamily: 'DMSans-Bold', fontSize: 13, color: '#111111' }}>
+          <Text style={{ fontFamily: 'GoogleSans-Bold', fontSize: 13, color: '#111111' }}>
             {t('onboarding.imABusiness')}
           </Text>
         </TouchableOpacity>

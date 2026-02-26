@@ -162,7 +162,7 @@ export default function NearbyScreen() {
           }}
         >
           <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#22c55e' }} />
-          <Text style={{ color: '#8a8a8f', fontSize: 10, fontWeight: '500' }}>Location active</Text>
+          <Text style={{ color: '#8a8a8f', fontSize: 10, fontFamily: 'GoogleSans-Medium' }}>Location active</Text>
         </View>
         <View className="flex-row items-center gap-4">
           <Pressable className="relative">
@@ -240,7 +240,7 @@ export default function NearbyScreen() {
                   coordinate={{ latitude: deal.lat, longitude: deal.lng }}
                 >
                   <Callout onPress={() => openDeal(deal.id)}>
-                    <Text style={{ fontWeight: 'bold' }}>{deal.business}</Text>
+                    <Text style={{ fontFamily: 'GoogleSans-Bold' }}>{deal.business}</Text>
                     <Text>{deal.discount}% off</Text>
                   </Callout>
                 </Marker>

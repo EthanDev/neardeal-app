@@ -98,6 +98,7 @@ export default function SearchOverlay({ visible, onClose }: Props) {
               onChangeText={setQuery}
               placeholder={t('consumer.search.placeholder', { defaultValue: 'Search deals...' })}
               placeholderTextColor="#8a8a8f"
+              textContentType="none"
               className="flex-1 text-[14px] text-text-primary"
               returnKeyType="search"
               autoCorrect={false}

@@ -13,7 +13,7 @@ export default function TabsLayout() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: { backgroundColor: '#0c0c0f' }, // Fallback; BusinessTabBar overrides
-        animation: 'shift',
+        animation: 'fade',
       }}
     >
       <Tabs.Screen
@@ -38,7 +38,6 @@ export default function TabsLayout() {
         name="create"
         options={{
           title: t('nav.create', 'Create'),
-          animation: 'slide_from_bottom',
           tabBarIcon: ({ focused }) => (
             <Feather name="plus-circle" size={22} color={focused ? '#c8e000' : '#8a8a8f'} />
           ),

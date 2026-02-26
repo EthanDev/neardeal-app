@@ -308,7 +308,7 @@ export default function SignupScreen() {
             <View className="items-center pb-4">
               <Text
                 className="text-[#c8e000] text-4xl font-bold tracking-tight"
-                style={{ fontFamily: 'Syne_700Bold' }}
+                style={{ fontFamily: 'GoogleSans-Bold' }}
               >
                 NearDeal
               </Text>
@@ -392,7 +392,7 @@ export default function SignupScreen() {
           <View className="items-center pb-2">
             <Text
               className="text-[#c8e000] text-4xl font-bold tracking-tight"
-              style={{ fontFamily: 'Syne_700Bold' }}
+              style={{ fontFamily: 'GoogleSans-Bold' }}
             >
               NearDeal
             </Text>
@@ -415,6 +415,7 @@ export default function SignupScreen() {
                   value={value}
                   onChangeText={onChange}
                   autoCapitalize="words"
+                  autoFocus
                   error={resolveError(errors.name?.message)}
                 />
               )}

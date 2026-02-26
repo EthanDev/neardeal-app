@@ -93,7 +93,7 @@ export default function TabBar({ state, descriptors, navigation }: BottomTabBarP
                     style={{
                       fontSize: 10,
                       color: isFocused ? '#c8e000' : '#8a8a8f',
-                      fontFamily: 'DMSans-Medium',
+                      fontFamily: 'GoogleSans-Medium',
                       marginTop: -12,
                     }}
                   >
@@ -121,7 +121,7 @@ export default function TabBar({ state, descriptors, navigation }: BottomTabBarP
                   style={{
                     fontSize: 10,
                     color: isFocused ? '#c8e000' : '#8a8a8f',
-                    fontFamily: 'DMSans-Medium',
+                    fontFamily: 'GoogleSans-Medium',
                   }}
                 >
                   {label}

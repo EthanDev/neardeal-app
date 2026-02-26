@@ -165,6 +165,8 @@ export default function BusinessProfileScreen() {
               value={editName}
               onChangeText={setEditName}
               placeholderTextColor="#8a8a8f"
+              textContentType="none"
+              autoFocus
             />
 
             <Text className="text-text-secondary text-xs mb-1">
@@ -175,6 +177,7 @@ export default function BusinessProfileScreen() {
               value={editAddress}
               onChangeText={setEditAddress}
               placeholderTextColor="#8a8a8f"
+              textContentType="none"
             />
 
             <Text className="text-text-secondary text-xs mb-1">
@@ -186,6 +189,7 @@ export default function BusinessProfileScreen() {
               onChangeText={setEditPhone}
               keyboardType="phone-pad"
               placeholderTextColor="#8a8a8f"
+              textContentType="none"
             />
 
             <View className="flex-row gap-3 mt-2">

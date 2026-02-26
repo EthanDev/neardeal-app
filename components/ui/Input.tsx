@@ -24,6 +24,7 @@ interface InputProps {
   numberOfLines?: number;
   onFocus?: (e: NativeSyntheticEvent<TextInputFocusEventData>) => void;
   onBlur?: (e: NativeSyntheticEvent<TextInputFocusEventData>) => void;
+  autoFocus?: boolean;
 }
 
 export function Input({
@@ -42,6 +43,7 @@ export function Input({
   numberOfLines,
   onFocus: onFocusProp,
   onBlur: onBlurProp,
+  autoFocus = false,
 }: InputProps) {
   const [focused, setFocused] = useState(false);
 
@@ -53,10 +55,6 @@ export function Input({
 
   const containerDynamicStyle = {
     borderColor,
-    shadowColor: '#c8e000',
-    shadowOffset: { width: 0, height: 0 } as const,
-    shadowOpacity: focused && !error ? 0.3 : 0,
-    shadowRadius: focused && !error ? 6 : 0,
     ...(multiline ? {} : { height: 48 }),
   };
 
@@ -99,6 +97,8 @@ export function Input({
           editable={editable}
           multiline={multiline}
           numberOfLines={numberOfLines}
+          autoFocus={autoFocus}
+          textContentType="none"
           onFocus={handleFocus}
           onBlur={handleBlur}
           style={multiline ? { color: '#ffffff' } : { color: '#ffffff', height: 48, paddingVertical: 0 }}

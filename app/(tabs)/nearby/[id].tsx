@@ -153,7 +153,7 @@ export default function DealDetailScreen() {
                 {getCategoryIcon(cat, 26, '#8a8a8f')}
               </View>
               <View className="ml-3">
-                <Text style={{ fontSize: 19, fontWeight: 'bold', color: '#ffffff' }}>{deal.title}</Text>
+                <Text style={{ fontSize: 19, fontFamily: 'GoogleSans-Bold', color: '#ffffff' }}>{deal.title}</Text>
                 <Text style={{ fontSize: 12, color: '#8a8a8f', marginTop: 2 }}>{deal.category}</Text>
               </View>
             </View>
@@ -162,30 +162,30 @@ export default function DealDetailScreen() {
 
             <View className="items-center">
               <View className="rounded-2xl items-center justify-center" style={{ backgroundColor: '#c8e000', paddingHorizontal: 32, paddingVertical: 16 }}>
-                <Text style={{ fontSize: 28, fontWeight: 'bold', color: '#111' }}>{deal.discountValue}% {t('consumer.detail.off', 'OFF')}</Text>
+                <Text style={{ fontSize: 28, fontFamily: 'GoogleSans-Bold', color: '#111' }}>{deal.discountValue}% {t('consumer.detail.off', 'OFF')}</Text>
               </View>
               <View className="rounded-full mt-3 flex-row items-center" style={{ backgroundColor: urgent ? 'rgba(239,68,68,0.15)' : 'rgba(34,197,94,0.15)', paddingHorizontal: 14, paddingVertical: 6 }}>
                 <ClockIcon size={13} color={urgent ? '#ef4444' : '#22c55e'} />
-                <Text style={{ fontSize: 13, fontWeight: '600', color: urgent ? '#ef4444' : '#22c55e', marginLeft: 4 }}>
+                <Text style={{ fontSize: 13, fontFamily: 'GoogleSans-SemiBold', color: urgent ? '#ef4444' : '#22c55e', marginLeft: 4 }}>
                   {minsLeft < 60 ? `${minsLeft} min left` : `${Math.floor(minsLeft / 60)}h ${minsLeft % 60}m left`}
                 </Text>
               </View>
             </View>
 
-            <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#ffffff', marginTop: 24 }}>{deal.title}</Text>
+            <Text style={{ fontSize: 24, fontFamily: 'GoogleSans-Bold', color: '#ffffff', marginTop: 24 }}>{deal.title}</Text>
             <Text style={{ fontSize: 15, color: '#8a8a8f', marginTop: 8, lineHeight: 15 * 1.65 }}>{deal.description}</Text>
 
             <View className="flex-row mt-6">
               <View className="flex-1 items-center">
-                <Text style={{ fontSize: 22, fontWeight: 'bold', color: '#8fa200' }}>{distStr}</Text>
+                <Text style={{ fontSize: 22, fontFamily: 'GoogleSans-Bold', color: '#8fa200' }}>{distStr}</Text>
                 <Text style={{ fontSize: 12, color: '#666', marginTop: 2 }}>{t('consumer.detail.away', 'away')}</Text>
               </View>
               <View className="flex-1 items-center">
-                <Text style={{ fontSize: 22, fontWeight: 'bold', color: '#ef4444' }}>{minsLeft}</Text>
+                <Text style={{ fontSize: 22, fontFamily: 'GoogleSans-Bold', color: '#ef4444' }}>{minsLeft}</Text>
                 <Text style={{ fontSize: 12, color: '#666', marginTop: 2 }}>{t('consumer.detail.minLeft', 'min left')}</Text>
               </View>
               <View className="flex-1 items-center">
-                <Text style={{ fontSize: 22, fontWeight: 'bold', color: '#ffffff' }}>{deal.currentClaims}</Text>
+                <Text style={{ fontSize: 22, fontFamily: 'GoogleSans-Bold', color: '#ffffff' }}>{deal.currentClaims}</Text>
                 <Text style={{ fontSize: 12, color: '#666', marginTop: 2 }}>{t('consumer.detail.claimed', 'claimed')}</Text>
               </View>
             </View>
@@ -200,7 +200,7 @@ export default function DealDetailScreen() {
               </MapView>
               <View style={{ position: 'absolute', bottom: 10, right: 10, flexDirection: 'row', alignItems: 'center', backgroundColor: '#c8e000', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, gap: 6 }}>
                 <NavigationIcon size={16} color="#111" />
-                <Text style={{ fontSize: 13, fontWeight: '700', color: '#111' }}>{t('consumer.detail.navigate', { defaultValue: 'Directions' })}</Text>
+                <Text style={{ fontSize: 13, fontFamily: 'GoogleSans-Bold', color: '#111' }}>{t('consumer.detail.navigate', { defaultValue: 'Directions' })}</Text>
               </View>
             </Pressable>
           </View>
@@ -222,7 +222,7 @@ export default function DealDetailScreen() {
             {claiming ? (
               <ActivityIndicator size="small" color="#111" />
             ) : (
-              <Text style={{ color: '#111', fontSize: 16, fontWeight: 'bold' }}>
+              <Text style={{ color: '#111', fontSize: 16, fontFamily: 'GoogleSans-Bold' }}>
                 {deal.hasClaimed ? 'Already Claimed' : t('consumer.detail.claim', 'Claim Deal')}
               </Text>
             )}

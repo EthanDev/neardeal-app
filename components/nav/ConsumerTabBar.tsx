@@ -74,7 +74,7 @@ export default function ConsumerTabBar({ state, descriptors, navigation }: Botto
                   style={{
                     fontSize: 10,
                     color: isFocused ? '#c8e000' : '#8a8a8f',
-                    fontFamily: 'DMSans-Medium',
+                    fontFamily: 'GoogleSans-Medium',
                   }}
                 >
                   {label}

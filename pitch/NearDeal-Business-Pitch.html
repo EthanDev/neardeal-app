@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NearDeal — Business Pitch Deck</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: #0c0c0f;
+    color: #ffffff;
+    overflow: hidden;
+  }
+
+  .slide {
+    width: 100vw;
+    height: 100vh;
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    padding: 60px 80px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .slide.active { display: flex; }
+
+  /* Accent color */
+  .accent { color: #c8e000; }
+  .accent-bg { background: #c8e000; color: #0c0c0f; }
+
+  /* Typography */
+  h1 { font-size: 64px; font-weight: 900; line-height: 1.1; letter-spacing: -2px; }
+  h2 { font-size: 48px; font-weight: 800; line-height: 1.15; letter-spacing: -1.5px; }
+  h3 { font-size: 32px; font-weight: 700; line-height: 1.3; }
+  p, li { font-size: 22px; line-height: 1.6; color: #b0b0b5; }
+  .subtitle { font-size: 26px; color: #8a8a8f; font-weight: 500; margin-top: 16px; }
+  .small { font-size: 16px; color: #5a5a5f; }
+
+  /* Stats */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    margin-top: 40px;
+  }
+  .stat-card {
+    background: #1a1a1f;
+    border: 1px solid #2a2a30;
+    border-radius: 16px;
+    padding: 28px;
+  }
+  .stat-number {
+    font-size: 42px;
+    font-weight: 900;
+    color: #c8e000;
+    letter-spacing: -1px;
+  }
+  .stat-label {
+    font-size: 16px;
+    color: #8a8a8f;
+    margin-top: 4px;
+    font-weight: 500;
+  }
+
+  /* Two column */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 60px;
+    align-items: center;
+  }
+
+  /* Screenshot placeholder */
+  .screenshot-placeholder {
+    background: #1a1a1f;
+    border: 2px dashed #2a2a30;
+    border-radius: 24px;
+    width: 300px;
+    height: 600px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 12px;
+    margin: 0 auto;
+  }
+  .screenshot-placeholder .label {
+    color: #5a5a5f;
+    font-size: 14px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .screenshot-placeholder .icon {
+    font-size: 40px;
+    opacity: 0.3;
+  }
+
+  /* Timeline / steps */
+  .steps {
+    display: flex;
+    gap: 24px;
+    margin-top: 40px;
+  }
+  .step {
+    flex: 1;
+    background: #1a1a1f;
+    border: 1px solid #2a2a30;
+    border-radius: 16px;
+    padding: 28px;
+    position: relative;
+  }
+  .step-num {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #c8e000;
+    color: #0c0c0f;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 16px;
+    margin-bottom: 14px;
+  }
+  .step h4 {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .step p { font-size: 16px; line-height: 1.5; }
+
+  /* Pricing table */
+  .pricing-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    margin-top: 40px;
+  }
+  .pricing-card {
+    background: #1a1a1f;
+    border: 1px solid #2a2a30;
+    border-radius: 20px;
+    padding: 32px;
+    text-align: center;
+    position: relative;
+  }
+  .pricing-card.featured {
+    border-color: #c8e000;
+    background: linear-gradient(180deg, #1a1f10 0%, #1a1a1f 100%);
+  }
+  .pricing-card .badge {
+    position: absolute;
+    top: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #c8e000;
+    color: #0c0c0f;
+    font-size: 12px;
+    font-weight: 800;
+    padding: 4px 16px;
+    border-radius: 100px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .price { font-size: 48px; font-weight: 900; margin: 16px 0 4px; }
+  .price-period { font-size: 16px; color: #8a8a8f; }
+  .pricing-card ul { list-style: none; text-align: left; margin-top: 20px; }
+  .pricing-card li {
+    font-size: 15px;
+    padding: 6px 0;
+    color: #b0b0b5;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .pricing-card li::before {
+    content: "✓";
+    color: #c8e000;
+    font-weight: 700;
+  }
+
+  /* Bullet list */
+  ul.features { list-style: none; margin-top: 24px; }
+  ul.features li {
+    padding: 10px 0;
+    font-size: 20px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  ul.features li::before {
+    content: "→";
+    color: #c8e000;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  /* Comparison */
+  .comparison {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-top: 32px;
+  }
+  .comp-card {
+    background: #1a1a1f;
+    border: 1px solid #2a2a30;
+    border-radius: 16px;
+    padding: 28px;
+  }
+  .comp-card.highlight {
+    border-color: #c8e000;
+    background: linear-gradient(180deg, #1a1f10 0%, #1a1a1f 100%);
+  }
+
+  /* Navigation */
+  .nav {
+    position: fixed;
+    bottom: 24px;
+    right: 40px;
+    display: flex;
+    gap: 8px;
+    z-index: 100;
+  }
+  .nav button {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    border: 1px solid #2a2a30;
+    background: #1a1a1f;
+    color: #ffffff;
+    font-size: 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .nav button:hover { background: #2a2a30; }
+
+  .slide-counter {
+    position: fixed;
+    bottom: 32px;
+    left: 40px;
+    font-size: 14px;
+    color: #5a5a5f;
+    font-weight: 600;
+    z-index: 100;
+  }
+
+  /* Decorative */
+  .glow {
+    position: absolute;
+    width: 400px;
+    height: 400px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(200,224,0,0.08) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  /* Screenshot row */
+  .screenshot-row {
+    display: flex;
+    gap: 24px;
+    justify-content: center;
+    margin-top: 32px;
+  }
+  .screenshot-small {
+    background: #1a1a1f;
+    border: 2px dashed #2a2a30;
+    border-radius: 16px;
+    width: 180px;
+    height: 360px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .screenshot-small .label {
+    color: #5a5a5f;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    text-align: center;
+    padding: 0 8px;
+  }
+</style>
+</head>
+<body>
+
+<!-- ===== SLIDE 1: Title ===== -->
+<div class="slide active" id="slide-1">
+  <div class="glow" style="top: -100px; right: -100px;"></div>
+  <div>
+    <h1><span class="accent">NearDeal</span></h1>
+    <h2 style="font-weight: 600; font-size: 36px; margin-top: 16px; color: #ffffff;">
+      The hyperlocal deals platform<br>for Bucharest businesses
+    </h2>
+    <p class="subtitle" style="margin-top: 24px;">
+      Drive foot traffic. Fill empty seats. Grow your customer base.<br>
+      All from your phone.
+    </p>
+    <div style="margin-top: 48px; display: flex; gap: 16px; align-items: center;">
+      <div class="accent-bg" style="padding: 12px 32px; border-radius: 12px; font-weight: 700; font-size: 18px;">
+        For Restaurants, Cafes & Retail
+      </div>
+      <span class="small" style="font-size: 18px; color: #5a5a5f;">Launching Bucharest 2026</span>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SLIDE 2: The Problem ===== -->
+<div class="slide" id="slide-2">
+  <div>
+    <p class="accent" style="font-size: 16px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 12px;">The Problem</p>
+    <h2>Local businesses are<br><span class="accent">invisible online</span></h2>
+    <div class="stats-grid" style="grid-template-columns: repeat(2, 1fr); margin-top: 48px;">
+      <div class="stat-card">
+        <div class="stat-number">$70+</div>
+        <div class="stat-label">Average cost to acquire one new customer</div>
+        <p style="font-size: 14px; margin-top: 8px;">Up 222% in 8 years. Traditional ads (flyers, radio, social) burn budget with no tracking.</p>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">0</div>
+        <div class="stat-label">Hyperlocal deal platforms in Romania</div>
+        <p style="font-size: 14px; margin-top: 8px;">Groupon left Romania in 2014. No one has filled the gap — until now.</p>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">67%</div>
+        <div class="stat-label">of consumers hunt for deals before buying</div>
+        <p style="font-size: 14px; margin-top: 8px;">92% of online shoppers check for offers. Your customers are looking — can they find you?</p>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">3,400+</div>
+        <div class="stat-label">restaurants and cafes in Bucharest alone</div>
+        <p style="font-size: 14px; margin-top: 8px;">Fierce competition. Standing out requires more than a good menu — you need visibility.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SLIDE 3: The Opportunity ===== -->
+<div class="slide" id="slide-3">
+  <div>
+    <p class="accent" style="font-size: 16px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 12px;">The Opportunity</p>
+    <h2>Bucharest is ready for<br><span class="accent">hyperlocal deals</span></h2>
+    <div class="stats-grid" style="margin-top: 48px;">
+      <div class="stat-card">
+        <div class="stat-number">2.3M</div>
+        <div class="stat-label">People in Bucharest metro area</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">84%</div>
+        <div class="stat-label">Smartphone penetration in Romania</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">74%</div>
+        <div class="stat-label">of e-commerce happens on mobile</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">€11.5B</div>
+        <div class="stat-label">Romanian e-commerce market (2024)</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">5.9M</div>
+        <div class="stat-label">Online shoppers in Romania (+800K YoY)</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">19%</div>
+        <div class="stat-label">Global digital coupon market CAGR</div>
+      </div>
+    </div>
+    <p class="small" style="margin-top: 24px;">Sources: Statista, DataReportal, AGERPRES, Straits Research (2024-2025)</p>
+  </div>
+</div>
+
+<!-- ===== SLIDE 4: What is NearDeal ===== -->
+<div class="slide" id="slide-4">
+  <div>
+    <p class="accent" style="font-size: 16px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 12px;">The Solution</p>
+    <h2>What is <span class="accent">NearDeal</span>?</h2>
+    <p style="font-size: 24px; color: #b0b0b5; margin-top: 16px; max-width: 700px;">
+      A mobile marketplace that connects nearby consumers with your deals — in real time, based on their location.
+    </p>
+    <div class="two-col" style="margin-top: 48px;">
+      <div>
+        <h3 style="margin-bottom: 24px;">For your business:</h3>
+        <ul class="features">
+          <li>Create deals in under 60 seconds</li>
+          <li>Set your discount, limits & expiry</li>
+          <li>Customers discover you when they're nearby</li>
+          <li>Track claims & redemptions in real-time</li>
+          <li>QR code scanning for instant redemption</li>
+          <li>Full analytics dashboard</li>
+        </ul>
+      </div>
+      <div>
+        <div class="screenshot-placeholder">
+          <div class="icon">📱</div>
+          <div class="label">Screenshot:<br>Business Dashboard</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SLIDE 5: How It Works — Business ===== -->
+<div class="slide" id="slide-5">
+  <div>
+    <p class="accent" style="font-size: 16px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 12px;">How It Works</p>
+    <h2>Go live in <span class="accent">3 simple steps</span></h2>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <h4>Create Your Deal</h4>
+        <p>Set your discount, price, category, and expiry. Add your address and you're ready.</p>
+        <div class="screenshot-small" style="margin-top: 16px;">
+          <div class="label">Screenshot:<br>Create Deal Form</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <h4>Customers Find You</h4>
+        <p>Nearby consumers see your deal on their map. They claim it with one tap.</p>
+        <div class="screenshot-small" style="margin-top: 16px;">
+          <div class="label">Screenshot:<br>Consumer Map View</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <h4>Scan & Redeem</h4>
+        <p>Customer shows their QR code. You scan it. Done. Track everything in your dashboard.</p>
+        <div class="screenshot-small" style="margin-top: 16px;">
+          <div class="label">Screenshot:<br>QR Scanner</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SLIDE 6: Consumer Experience ===== -->
+<div class="slide" id="slide-6">
+  <div>
+    <p class="accent" style="font-size: 16px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 12px;">Consumer Experience</p>
+    <h2>How customers <span class="accent">discover you</span></h2>
+    <div class="two-col" style="margin-top: 40px;">
+      <div>
+        <ul class="features">
+          <li><strong style="color: #fff;">Location-based discovery</strong><br>Consumers see deals within walking distance</li>
+          <li><strong style="color: #fff;">One-tap claiming</strong><br>No sign-up friction — claim a deal instantly</li>
+          <li><strong style="color: #fff;">Real-time notifications</strong><br>Push alerts when they're near your business</li>
+          <li><strong style="color: #fff;">Flash deals</strong><br>Create urgency with time-limited offers that get boosted visibility</li>
+          <li><strong style="color: #fff;">Directions built in</strong><br>One tap to navigate straight to your door</li>
+        </ul>
+      </div>
+      <div>
+        <div class="screenshot-row" style="flex-direction: column; align-items: center;">
+          <div class="screenshot-placeholder" style="width: 260px; height: 520px;">
+            <div class="icon">🗺️</div>
+            <div class="label">Screenshot:<br>Consumer Nearby Deals</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SLIDE 7: Analytics & Insights ===== -->
+<div class="slide" id="slide-7">
+  <div>
+    <p class="accent" style="font-size: 16px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 12px;">Real-Time Analytics</p>
+    <h2>Know exactly <span class="accent">what's working</span></h2>
+    <div class="two-col" style="margin-top: 40px;">
+      <div>
+        <ul class="features">
+          <li><strong style="color: #fff;">Live dashboard</strong><br>See claims, redemptions, and revenue at a glance</li>
+          <li><strong style="color: #fff;">Redemption rate tracking</strong><br>Know how many claimers actually visit</li>
+          <li><strong style="color: #fff;">Claims over time</strong><br>Visualize your deal performance by day</li>
+          <li><strong style="color: #fff;">Category breakdown</strong><br>Understand which deal types perform best</li>
+          <li><strong style="color: #fff;">Revenue attribution</strong><br>Track exactly how much NearDeal drives</li>
+        </ul>
+      </div>
+      <div>
+        <div class="screenshot-row" style="flex-direction: column; align-items: center;">
+          <div class="screenshot-placeholder" style="width: 260px; height: 520px;">
+            <div class="icon">📊</div>
+            <div class="label">Screenshot:<br>Analytics Dashboard</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SLIDE 8: Why NearDeal vs Alternatives ===== -->
+<div class="slide" id="slide-8">
+  <div>
+    <p class="accent" style="font-size: 16px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 12px;">Why NearDeal</p>
+    <h2>Stop wasting money on<br><span class="accent">marketing that doesn't work</span></h2>
+    <div class="comparison">
+      <div class="comp-card">
+        <h3 style="font-size: 22px; color: #8a8a8f; margin-bottom: 20px;">Traditional Marketing</h3>
+        <ul style="list-style: none;">
+          <li style="padding: 8px 0; font-size: 17px; color: #5a5a5f;">✕ &nbsp; Flyers — no tracking, low conversion</li>
+          <li style="padding: 8px 0; font-size: 17px; color: #5a5a5f;">✕ &nbsp; Social media ads — expensive, hard to target locally</li>
+          <li style="padding: 8px 0; font-size: 17px; color: #5a5a5f;">✕ &nbsp; Google/Meta Ads — $70+ per new customer</li>
+          <li style="padding: 8px 0; font-size: 17px; color: #5a5a5f;">✕ &nbsp; Word of mouth — slow, unpredictable</li>
+          <li style="padding: 8px 0; font-size: 17px; color: #5a5a5f;">✕ &nbsp; No way to measure foot traffic from ads</li>
+        </ul>
+      </div>
+      <div class="comp-card highlight">
+        <h3 style="font-size: 22px; margin-bottom: 20px;"><span class="accent">NearDeal</span></h3>
+        <ul style="list-style: none;">
+          <li style="padding: 8px 0; font-size: 17px;">✓ &nbsp; Target customers already nearby</li>
+          <li style="padding: 8px 0; font-size: 17px;">✓ &nbsp; Pay only for your plan — no per-click fees</li>
+          <li style="padding: 8px 0; font-size: 17px;">✓ &nbsp; Track every claim and redemption</li>
+          <li style="padding: 8px 0; font-size: 17px;">✓ &nbsp; Customers walk in the door — real foot traffic</li>
+          <li style="padding: 8px 0; font-size: 17px;">✓ &nbsp; Create deals in 60 seconds from your phone</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SLIDE 9: Pricing ===== -->
+<div class="slide" id="slide-9">
+  <div>
+    <p class="accent" style="font-size: 16px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 12px;">Pricing</p>
+    <h2>Simple, transparent <span class="accent">pricing</span></h2>
+    <p style="font-size: 20px; margin-top: 8px;">Start free. Upgrade when you grow.</p>
+    <div class="pricing-grid">
+      <div class="pricing-card">
+        <h3 style="font-size: 24px;">Free</h3>
+        <div class="price">0 <span style="font-size: 20px; font-weight: 500;">RON</span></div>
+        <div class="price-period">forever</div>
+        <ul>
+          <li>Up to 3 active deals</li>
+          <li>QR code redemption</li>
+          <li>Basic analytics</li>
+          <li>Standard visibility</li>
+        </ul>
+      </div>
+      <div class="pricing-card featured">
+        <div class="badge">Most Popular</div>
+        <h3 style="font-size: 24px;">Pro</h3>
+        <div class="price accent">99 <span style="font-size: 20px; font-weight: 500;">RON</span></div>
+        <div class="price-period">/month</div>
+        <ul>
+          <li>Up to 15 active deals</li>
+          <li>Flash deals with boosted visibility</li>
+          <li>Advanced analytics & insights</li>
+          <li>Priority placement</li>
+          <li>Push notifications to nearby users</li>
+        </ul>
+      </div>
+      <div class="pricing-card">
+        <h3 style="font-size: 24px;">Enterprise</h3>
+        <div class="price">249 <span style="font-size: 20px; font-weight: 500;">RON</span></div>
+        <div class="price-period">/month</div>
+        <ul>
+          <li>Unlimited deals</li>
+          <li>Multi-location support</li>
+          <li>API access</li>
+          <li>Dedicated account manager</li>
+          <li>Custom analytics & reports</li>
+          <li>Top placement guarantee</li>
+        </ul>
+      </div>
+    </div>
+    <p class="small" style="margin-top: 24px; text-align: center;">No commissions. No per-redemption fees. Just a flat monthly rate.</p>
+  </div>
+</div>
+
+<!-- ===== SLIDE 10: CTA ===== -->
+<div class="slide" id="slide-10">
+  <div class="glow" style="bottom: -200px; left: -100px;"></div>
+  <div style="text-align: center; max-width: 800px; margin: 0 auto;">
+    <h1 style="font-size: 56px;">
+      Ready to fill your<br><span class="accent">empty seats?</span>
+    </h1>
+    <p style="font-size: 24px; margin-top: 24px; color: #8a8a8f;">
+      Join the first wave of Bucharest businesses on NearDeal.<br>
+      Early adopters get 3 months of Pro — free.
+    </p>
+    <div style="margin-top: 48px; display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;">
+      <div class="accent-bg" style="padding: 16px 48px; border-radius: 14px; font-weight: 800; font-size: 22px;">
+        Sign Up Free →
+      </div>
+    </div>
+    <div style="margin-top: 48px;">
+      <p style="font-size: 18px; color: #5a5a5f;">
+        contact@neardeal.ro &nbsp;|&nbsp; neardeal.ro
+      </p>
+    </div>
+    <div style="margin-top: 60px; display: flex; gap: 32px; justify-content: center;">
+      <div class="screenshot-small" style="width: 140px; height: 280px; border-radius: 12px;">
+        <div class="label" style="font-size: 10px;">Screenshot:<br>Login Screen</div>
+      </div>
+      <div class="screenshot-small" style="width: 140px; height: 280px; border-radius: 12px;">
+        <div class="label" style="font-size: 10px;">Screenshot:<br>Dashboard</div>
+      </div>
+      <div class="screenshot-small" style="width: 140px; height: 280px; border-radius: 12px;">
+        <div class="label" style="font-size: 10px;">Screenshot:<br>Consumer Map</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Navigation -->
+<div class="slide-counter"><span id="current">1</span> / 10</div>
+<div class="nav">
+  <button onclick="prevSlide()">←</button>
+  <button onclick="nextSlide()">→</button>
+</div>
+
+<script>
+  let current = 1;
+  const total = 10;
+
+  function showSlide(n) {
+    document.querySelectorAll('.slide').forEach(s => s.classList.remove('active'));
+    document.getElementById(`slide-${n}`).classList.add('active');
+    document.getElementById('current').textContent = n;
+  }
+
+  function nextSlide() {
+    if (current < total) { current++; showSlide(current); }
+  }
+
+  function prevSlide() {
+    if (current > 1) { current--; showSlide(current); }
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); nextSlide(); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); prevSlide(); }
+  });
+</script>
+
+</body>
+</html>

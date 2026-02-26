@@ -163,7 +163,7 @@ export default function LoginScreen() {
         <View className="items-center pt-8 pb-10 px-6">
           <Text
             className="text-[#c8e000] text-5xl font-bold tracking-tight"
-            style={{ fontFamily: 'Syne_700Bold' }}
+            style={{ fontFamily: 'GoogleSans-Bold' }}
           >
             NearDeal
           </Text>
@@ -192,6 +192,7 @@ export default function LoginScreen() {
                 onChangeText={onChange}
                 keyboardType="email-address"
                 autoCapitalize="none"
+                autoFocus
                 error={resolveFieldError(errors.email?.message)}
               />
             )}

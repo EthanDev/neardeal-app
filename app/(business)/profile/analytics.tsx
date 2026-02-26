@@ -65,7 +65,8 @@ function getDateRange(range: DateRange): { from: string; to: string } {
   };
 }
 
-function formatCurrency(value: number): string {
+function formatCurrency(value?: number | null): string {
+  if (value == null) return '0 RON';
   return `${value.toLocaleString('ro-RO')} RON`;
 }
 
