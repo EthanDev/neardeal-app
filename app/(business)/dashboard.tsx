@@ -11,12 +11,15 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import * as Haptics from 'expo-haptics';
 
 import Header from '@/components/nav/Header';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { Badge } from '@/components/ui/Badge';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { KpiCard } from '@/components/ui/KpiCard';
+import { DashboardSkeleton } from '@/components/skeletons/DashboardSkeleton';
 import { useAuthStore } from '@/lib/store';
 import { api } from '@/lib/api';
 
@@ -74,28 +77,10 @@ function ActivityBadge({ type }: { type: ActivityType }) {
   const isClaimed = type === 'claimed';
 
   return (
-    <View
-      style={{
-        paddingHorizontal: 8,
-        paddingVertical: 3,
-        borderRadius: 4,
-        backgroundColor: isClaimed ? '#1a2a0a' : '#0a1a2a',
-        borderWidth: 1,
-        borderColor: isClaimed ? '#4a7a10' : '#1050a0',
-      }}
-    >
-      <Text
-        style={{
-          fontSize: 11,
-          fontWeight: '600',
-          color: isClaimed ? '#c8e000' : '#4a9ef0',
-          textTransform: 'uppercase',
-          letterSpacing: 0.5,
-        }}
-      >
-        {isClaimed ? t('deals.detail.claimed') : t('deals.detail.redeemed')}
-      </Text>
-    </View>
+    <Badge
+      label={isClaimed ? t('deals.detail.claimed') : t('deals.detail.redeemed')}
+      variant={isClaimed ? 'accent' : 'success'}
+    />
   );
 }
 
@@ -110,38 +95,16 @@ function ActivityListItem({ item }: { item: ActivityItem }) {
           >
             {item.dealTitle}
           </Text>
-          <Text className="text-[#8a8a8f] text-xs">{item.userName}</Text>
+          <Text className="text-text-secondary text-xs">{item.userName}</Text>
         </View>
         <View className="items-end">
           <ActivityBadge type={item.actionType} />
-          <Text className="text-[#8a8a8f] text-xs mt-1">
+          <Text className="text-text-secondary text-xs mt-1">
             {formatTimestamp(item.timestamp)}
           </Text>
         </View>
       </View>
     </Card>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Loading skeleton
-// ---------------------------------------------------------------------------
-
-function DashboardSkeleton() {
-  return (
-    <View className="px-4 pt-5">
-      <View className="flex-row gap-3 mb-3">
-        <View className="flex-1 h-20 bg-[#1a1a1f] rounded-xl" />
-        <View className="flex-1 h-20 bg-[#1a1a1f] rounded-xl" />
-      </View>
-      <View className="flex-row gap-3 mb-6">
-        <View className="flex-1 h-20 bg-[#1a1a1f] rounded-xl" />
-        <View className="flex-1 h-20 bg-[#1a1a1f] rounded-xl" />
-      </View>
-      {[1, 2, 3].map((i) => (
-        <View key={i} className="h-16 bg-[#1a1a1f] rounded-xl mb-3" />
-      ))}
-    </View>
   );
 }
 
@@ -154,6 +117,7 @@ function LanguageToggle() {
   const currentLang = i18n.language;
 
   const toggle = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const next = currentLang === 'ro' ? 'en' : 'ro';
     i18n.changeLanguage(next);
   }, [currentLang, i18n]);
@@ -161,18 +125,11 @@ function LanguageToggle() {
   return (
     <Pressable
       onPress={toggle}
-      style={({ pressed }) => ({
-        opacity: pressed ? 0.7 : 1,
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 6,
-        borderWidth: 1,
-        borderColor: '#2a2a30',
-        backgroundColor: '#1a1a1f',
-      })}
+      className="px-2 py-1 rounded-md border border-border bg-surface"
+      style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
       accessibilityRole="button"
     >
-      <Text style={{ color: '#c8e000', fontSize: 12, fontWeight: '600' }}>
+      <Text className="text-accent text-xs font-semibold">
         {currentLang === 'ro' ? 'EN' : 'RO'}
       </Text>
     </Pressable>
@@ -233,7 +190,7 @@ export default function DashboardScreen() {
   // Loading state
   if (loading) {
     return (
-      <View className="flex-1 bg-[#0c0c0f]">
+      <View className="flex-1 bg-bg">
         <Header
           title={t('dashboard.title')}
           rightAction={<LanguageToggle />}
@@ -246,13 +203,13 @@ export default function DashboardScreen() {
   // Error state
   if (error && !data) {
     return (
-      <View className="flex-1 bg-[#0c0c0f]">
+      <View className="flex-1 bg-bg">
         <Header
           title={t('dashboard.title')}
           rightAction={<LanguageToggle />}
         />
         <View className="flex-1 items-center justify-center px-8">
-          <Text className="text-[#ef4444] text-center mb-4">{error}</Text>
+          <Text className="text-error text-center mb-4">{error}</Text>
           <Button
             variant="secondary"
             title={t('common.retry') ?? 'Retry'}
@@ -267,7 +224,7 @@ export default function DashboardScreen() {
   }
 
   return (
-    <View className="flex-1 bg-[#0c0c0f]">
+    <View className="flex-1 bg-bg">
       <Header
         title={t('dashboard.title')}
         rightAction={<LanguageToggle />}
@@ -347,8 +304,9 @@ export default function DashboardScreen() {
 
           {(data?.recentActivity ?? []).length === 0 ? (
             <EmptyState
+              icon="bar-chart-2"
               title={t('dashboard.noActivity')}
-              message={t('common.noData')}
+              subtitle="Your dashboard will show stats once you have active deals"
             />
           ) : (
             <FlatList

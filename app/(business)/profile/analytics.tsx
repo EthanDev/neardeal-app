@@ -8,6 +8,7 @@ import {
   View,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import * as Haptics from 'expo-haptics';
 
 import Header from '@/components/nav/Header';
 import { Card } from '@/components/ui/Card';
@@ -73,6 +74,7 @@ function formatCurrency(value: number): string {
 // ---------------------------------------------------------------------------
 
 function ClaimsBarChart({ data }: { data: ClaimsDataPoint[] }) {
+  const { t } = useTranslation();
   if (data.length === 0) return null;
 
   const maxCount = Math.max(...data.map((d) => d.count), 1);
@@ -80,19 +82,19 @@ function ClaimsBarChart({ data }: { data: ClaimsDataPoint[] }) {
 
   return (
     <Card>
-      <Text className="text-white text-sm font-semibold mb-4">Claims Over Time</Text>
+      <Text className="text-white text-sm font-semibold mb-4">{t('analytics.claimsOverTime', 'Claims Over Time')}</Text>
       <View className="flex-row items-end justify-between" style={{ height: BAR_MAX_HEIGHT + 24 }}>
         {data.map((point, i) => {
           const height = Math.max((point.count / maxCount) * BAR_MAX_HEIGHT, 4);
           const dayLabel = point.date.slice(5); // MM-DD
           return (
             <View key={i} className="items-center flex-1 mx-0.5">
-              <Text className="text-[#8a8a8f] text-[9px] mb-1">{point.count}</Text>
+              <Text className="text-text-secondary text-[9px] mb-1">{point.count}</Text>
               <View
-                className="w-full bg-[#c8e000] rounded-t"
+                className="w-full bg-accent rounded-t"
                 style={{ height, maxWidth: 28 }}
               />
-              <Text className="text-[#8a8a8f] text-[9px] mt-1">{dayLabel}</Text>
+              <Text className="text-text-secondary text-[9px] mt-1">{dayLabel}</Text>
             </View>
           );
         })}
@@ -106,22 +108,23 @@ function ClaimsBarChart({ data }: { data: ClaimsDataPoint[] }) {
 // ---------------------------------------------------------------------------
 
 function TopDealsList({ deals }: { deals: TopDeal[] }) {
+  const { t } = useTranslation();
   if (deals.length === 0) return null;
 
   return (
     <Card>
-      <Text className="text-white text-sm font-semibold mb-3">Top Deals</Text>
+      <Text className="text-white text-sm font-semibold mb-3">{t('analytics.topDeals', 'Top Deals')}</Text>
       {deals.map((deal, i) => (
         <View
           key={deal.dealId}
           className={[
             'flex-row items-center justify-between py-3',
-            i < deals.length - 1 ? 'border-b border-[#2a2a30]' : '',
+            i < deals.length - 1 ? 'border-b border-border' : '',
           ].join(' ')}
         >
           <View className="flex-row items-center flex-1 mr-3">
-            <View className="w-6 h-6 rounded-full bg-[#2a2a30] items-center justify-center mr-3">
-              <Text className="text-[#8a8a8f] text-xs font-bold">{i + 1}</Text>
+            <View className="w-6 h-6 rounded-full bg-border items-center justify-center mr-3">
+              <Text className="text-text-secondary text-xs font-bold">{i + 1}</Text>
             </View>
             <Text className="text-white text-sm flex-1" numberOfLines={1}>
               {deal.title}
@@ -129,7 +132,7 @@ function TopDealsList({ deals }: { deals: TopDeal[] }) {
           </View>
           <View className="items-end">
             <Text className="text-white text-sm font-semibold">{deal.claims}</Text>
-            <Text className="text-[#8a8a8f] text-[10px]">claims</Text>
+            <Text className="text-text-secondary text-[10px]">{t('analytics.claims', 'Claims').toLowerCase()}</Text>
           </View>
         </View>
       ))}
@@ -142,6 +145,7 @@ function TopDealsList({ deals }: { deals: TopDeal[] }) {
 // ---------------------------------------------------------------------------
 
 function CategoryBreakdownChart({ data }: { data: CategoryBreakdown[] }) {
+  const { t } = useTranslation();
   if (data.length === 0) return null;
 
   const total = data.reduce((sum, d) => sum + d.count, 0) || 1;
@@ -149,7 +153,7 @@ function CategoryBreakdownChart({ data }: { data: CategoryBreakdown[] }) {
 
   return (
     <Card>
-      <Text className="text-white text-sm font-semibold mb-3">Category Breakdown</Text>
+      <Text className="text-white text-sm font-semibold mb-3">{t('analytics.categoryBreakdown', 'Category Breakdown')}</Text>
       {/* Stacked bar */}
       <View className="flex-row h-3 rounded-full overflow-hidden mb-3">
         {data.map((cat, i) => (
@@ -171,7 +175,7 @@ function CategoryBreakdownChart({ data }: { data: CategoryBreakdown[] }) {
                 className="w-3 h-3 rounded-sm mr-2"
                 style={{ backgroundColor: COLORS[i % COLORS.length] }}
               />
-              <Text className="text-[#8a8a8f] text-xs">{cat.category}</Text>
+              <Text className="text-text-secondary text-xs">{cat.category}</Text>
             </View>
             <Text className="text-white text-xs font-medium">
               {cat.count} ({Math.round((cat.count / total) * 100)}%)
@@ -194,10 +198,11 @@ function DateRangePicker({
   selected: DateRange;
   onSelect: (range: DateRange) => void;
 }) {
+  const { t } = useTranslation();
   const options: { key: DateRange; label: string }[] = [
-    { key: '7d', label: '7 Days' },
-    { key: '30d', label: '30 Days' },
-    { key: '90d', label: '90 Days' },
+    { key: '7d', label: t('analytics.7days', '7 Days') },
+    { key: '30d', label: t('analytics.30days', '30 Days') },
+    { key: '90d', label: t('analytics.90days', '90 Days') },
   ];
 
   return (
@@ -207,16 +212,19 @@ function DateRangePicker({
         return (
           <Pressable
             key={opt.key}
-            onPress={() => onSelect(opt.key)}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              onSelect(opt.key);
+            }}
             className={[
               'px-3 py-1.5 rounded-full border',
-              isActive ? 'bg-[#c8e000]/20 border-[#c8e000]' : 'bg-[#1a1a1f] border-[#2a2a30]',
+              isActive ? 'bg-accent/20 border-accent' : 'bg-surface border-border',
             ].join(' ')}
           >
             <Text
               className={[
                 'text-xs font-semibold',
-                isActive ? 'text-[#c8e000]' : 'text-[#8a8a8f]',
+                isActive ? 'text-accent' : 'text-text-secondary',
               ].join(' ')}
             >
               {opt.label}
@@ -266,13 +274,13 @@ export default function AnalyticsScreen() {
   }, [range, fetchAnalytics]);
 
   return (
-    <View className="flex-1 bg-[#0c0c0f]">
-      <Header title="Analytics" showBack />
+    <View className="flex-1 bg-bg">
+      <Header title={t('analytics.title', 'Analytics')} showBack />
 
       {loading ? (
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator color="#c8e000" />
-          <Text className="text-[#8a8a8f] text-sm mt-3">Loading analytics...</Text>
+          <Text className="text-text-secondary text-sm mt-3">{t('analytics.loadingAnalytics', 'Loading analytics...')}</Text>
         </View>
       ) : error || !data ? (
         <View className="flex-1">
@@ -280,8 +288,9 @@ export default function AnalyticsScreen() {
             <DateRangePicker selected={range} onSelect={setRange} />
           </View>
           <EmptyState
-            title="No data available"
-            message="Analytics data could not be loaded. Pull to refresh or try a different date range."
+            icon="pie-chart"
+            title={t('common.noData', 'No data available')}
+            subtitle={t('analytics.noDataMessage', 'Analytics data could not be loaded. Pull to refresh or try a different date range.')}
           />
         </View>
       ) : (
@@ -294,6 +303,7 @@ export default function AnalyticsScreen() {
               refreshing={refreshing}
               onRefresh={onRefresh}
               tintColor="#c8e000"
+              colors={['#c8e000']}
             />
           }
         >
@@ -305,17 +315,17 @@ export default function AnalyticsScreen() {
           {/* KPI cards */}
           <View className="px-4 pt-3">
             <View className="flex-row gap-3 mb-3">
-              <KpiCard title="Total Claims" value={data.totalClaims} trend="up" />
-              <KpiCard title="Redemptions" value={data.totalRedemptions} trend="up" />
+              <KpiCard title={t('analytics.totalClaims', 'Total Claims')} value={data.totalClaims} trend="up" />
+              <KpiCard title={t('analytics.redemptions', 'Redemptions')} value={data.totalRedemptions} trend="up" />
             </View>
             <View className="flex-row gap-3">
               <KpiCard
-                title="Redemption Rate"
+                title={t('analytics.redemptionRate', 'Redemption Rate')}
                 value={`${data.redemptionRate}%`}
                 trend="neutral"
               />
               <KpiCard
-                title="Revenue"
+                title={t('analytics.revenue', 'Revenue')}
                 value={formatCurrency(data.revenue)}
                 trend="up"
               />

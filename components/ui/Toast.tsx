@@ -32,24 +32,24 @@ export const useToastStore = create<ToastState>((set) => ({
 
 const variantStyles: Record<ToastVariant, { container: string; text: string; indicator: string }> = {
   success: {
-    container: 'bg-[#1a1a1f] border border-[#22c55e]',
+    container: 'bg-surface border border-success',
     text: 'text-white',
-    indicator: 'bg-[#22c55e]',
+    indicator: 'bg-success',
   },
   error: {
-    container: 'bg-[#1a1a1f] border border-[#ef4444]',
+    container: 'bg-surface border border-error',
     text: 'text-white',
-    indicator: 'bg-[#ef4444]',
+    indicator: 'bg-error',
   },
   warning: {
-    container: 'bg-[#1a1a1f] border border-[#f59e0b]',
+    container: 'bg-surface border border-warning',
     text: 'text-white',
-    indicator: 'bg-[#f59e0b]',
+    indicator: 'bg-warning',
   },
   info: {
-    container: 'bg-[#1a1a1f] border border-[#2a2a30]',
+    container: 'bg-surface border border-border',
     text: 'text-white',
-    indicator: 'bg-[#c8e000]',
+    indicator: 'bg-accent',
   },
 };
 

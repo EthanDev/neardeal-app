@@ -214,19 +214,19 @@ export default function SignupScreen() {
       case 'validation.emailRequired':
         return t('auth.signup.email') + ' ' + t('common.error').toLowerCase();
       case 'validation.emailInvalid':
-        return t('auth.signup.email') + ': invalid format';
+        return t('auth.signup.email') + ': ' + t('auth.validation.invalidFormat', 'invalid format');
       case 'validation.passwordMin':
         return t('auth.signup.passwordHint');
       case 'validation.passwordUppercase':
-        return 'Password must contain at least one uppercase letter';
+        return t('auth.validation.passwordUppercase', 'Password must contain at least one uppercase letter');
       case 'validation.passwordNumber':
-        return 'Password must contain at least one number';
+        return t('auth.validation.passwordNumber', 'Password must contain at least one number');
       case 'validation.passwordMismatch':
-        return 'Passwords do not match';
+        return t('auth.validation.passwordMismatch', 'Passwords do not match');
       case 'validation.codeLength':
-        return 'Code must be exactly 6 digits';
+        return t('auth.validation.codeLength', 'Code must be exactly 6 digits');
       case 'validation.codeDigits':
-        return 'Code must contain digits only';
+        return t('auth.validation.codeDigits', 'Code must contain digits only');
       default:
         return message;
     }
@@ -559,16 +559,12 @@ export default function SignupScreen() {
 
             {/* Business signup link */}
             <View className="items-center pt-2 pb-4">
-              <Pressable
+              <Button
+                variant="primary"
+                size="sm"
+                title={t('auth.imABusinessArrow', "I'm a business \u2192")}
                 onPress={() => router.push('/(auth)/business-signup')}
-                className="self-center px-5 py-2 rounded-full"
-                style={{ backgroundColor: '#c8e000' }}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              >
-                <Text className="text-sm font-semibold" style={{ color: '#111' }}>
-                  {"I'm a business →"}
-                </Text>
-              </Pressable>
+              />
             </View>
           </View>
         </View>

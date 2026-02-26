@@ -149,15 +149,15 @@ function EyeIcon({ visible }: { visible: boolean }) {
 function resolveFieldError(t: (key: string) => string, message?: string): string | undefined {
   if (!message) return undefined;
   const map: Record<string, string> = {
-    'validation.emailRequired': t('auth.reset.email') + ' is required',
-    'validation.emailInvalid': t('auth.reset.email') + ': invalid format',
-    'validation.codeLength': 'Code must be exactly 6 digits',
-    'validation.codeNumeric': 'Code must contain only digits',
-    'validation.passwordMin': 'Password must be at least 8 characters',
-    'validation.passwordUppercase': 'Password must contain an uppercase letter',
-    'validation.passwordNumber': 'Password must contain a number',
-    'validation.confirmRequired': t('auth.reset.confirmPassword') + ' is required',
-    'validation.passwordsMismatch': 'Passwords do not match',
+    'validation.emailRequired': t('auth.reset.email') + ' ' + t('auth.validation.emailRequired', 'is required'),
+    'validation.emailInvalid': t('auth.reset.email') + ': ' + t('auth.validation.invalidFormat', 'invalid format'),
+    'validation.codeLength': t('auth.validation.codeLength', 'Code must be exactly 6 digits'),
+    'validation.codeNumeric': t('auth.validation.codeNumeric', 'Code must contain only digits'),
+    'validation.passwordMin': t('auth.signup.passwordHint'),
+    'validation.passwordUppercase': t('auth.validation.passwordUppercase', 'Password must contain an uppercase letter'),
+    'validation.passwordNumber': t('auth.validation.passwordNumber', 'Password must contain a number'),
+    'validation.confirmRequired': t('auth.reset.confirmPassword') + ' ' + t('auth.validation.confirmRequired', 'is required'),
+    'validation.passwordsMismatch': t('auth.validation.passwordMismatch', 'Passwords do not match'),
   };
   return map[message] ?? message;
 }

@@ -15,7 +15,7 @@ export function StepIndicator({ steps, currentStep, labels = [] }: StepIndicator
         <Text className="text-white text-sm font-semibold">
           {labels[currentStep - 1] || `Step ${currentStep}`}
         </Text>
-        <Text className="text-[#8a8a8f] text-xs">
+        <Text className="text-text-secondary text-xs">
           {currentStep} of {steps}
         </Text>
       </View>
@@ -33,10 +33,10 @@ export function StepIndicator({ steps, currentStep, labels = [] }: StepIndicator
               className={[
                 'flex-1 h-1 rounded-full',
                 isCompleted
-                  ? 'bg-[#c8e000]'
+                  ? 'bg-accent'
                   : isCurrent
-                  ? 'bg-[#c8e000]'
-                  : 'bg-[#2a2a30]',
+                  ? 'bg-accent'
+                  : 'bg-border',
               ].join(' ')}
               style={isCurrent ? { opacity: 0.5 } : undefined}
             />

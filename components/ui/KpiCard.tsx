@@ -14,7 +14,7 @@ function TrendIndicator({ direction }: { direction: TrendDirection }) {
   if (direction === 'up') {
     return (
       <View className="flex-row items-center">
-        <Text className="text-[#22c55e] text-xs font-medium">+</Text>
+        <Text className="text-success text-xs font-medium">+</Text>
         <View
           style={{
             width: 0,
@@ -35,7 +35,7 @@ function TrendIndicator({ direction }: { direction: TrendDirection }) {
   if (direction === 'down') {
     return (
       <View className="flex-row items-center">
-        <Text className="text-[#ef4444] text-xs font-medium">-</Text>
+        <Text className="text-error text-xs font-medium">-</Text>
         <View
           style={{
             width: 0,
@@ -67,9 +67,9 @@ function TrendIndicator({ direction }: { direction: TrendDirection }) {
 
 export function KpiCard({ title, value, subtitle, trend }: KpiCardProps) {
   return (
-    <View className="bg-[#1a1a1f] rounded-lg border border-[#2a2a30] p-4 flex-1">
+    <View className="bg-surface rounded-2xl border border-border p-4 flex-1">
       <View className="flex-row items-start justify-between mb-2">
-        <Text className="text-[#8a8a8f] text-xs font-medium uppercase tracking-wide flex-1 mr-2">
+        <Text className="text-text-secondary text-xs font-medium uppercase tracking-wide flex-1 mr-2">
           {title}
         </Text>
         {trend ? <TrendIndicator direction={trend} /> : null}
@@ -78,7 +78,7 @@ export function KpiCard({ title, value, subtitle, trend }: KpiCardProps) {
       <Text className="text-white text-2xl font-bold mb-1">{value}</Text>
 
       {subtitle ? (
-        <Text className="text-[#8a8a8f] text-xs">{subtitle}</Text>
+        <Text className="text-text-secondary text-xs">{subtitle}</Text>
       ) : null}
     </View>
   );

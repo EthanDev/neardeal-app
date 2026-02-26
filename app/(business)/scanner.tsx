@@ -1,6 +1,9 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Dimensions,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -651,12 +654,22 @@ export default function ScannerScreen() {
       ) : null}
 
       {/* Manual entry — collapsible, bottom area above tab bar */}
-      <View style={[styles.manualArea, { bottom: TAB_BAR_HEIGHT + 8 }]}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'position' : 'height'}
+        keyboardVerticalOffset={0}
+        style={[styles.manualArea, { bottom: TAB_BAR_HEIGHT + 8 }]}
+      >
         {manualExpanded ? (
           <View style={styles.manualContainer}>
             <View style={styles.manualHeader}>
               <Text style={styles.manualLabel}>{t('scanner.manualEntryCollapsed')}</Text>
-              <Pressable onPress={() => setManualExpanded(false)} hitSlop={12}>
+              <Pressable
+                onPress={() => {
+                  Keyboard.dismiss();
+                  setManualExpanded(false);
+                }}
+                hitSlop={12}
+              >
                 <Text style={{ color: '#8a8a8f', fontSize: 18, fontWeight: '600' }}>✕</Text>
               </Pressable>
             </View>
@@ -698,7 +711,7 @@ export default function ScannerScreen() {
             <Text style={styles.manualIconLabel}>{t('scanner.manualEntryCollapsed')}</Text>
           </Pressable>
         )}
-      </View>
+      </KeyboardAvoidingView>
     </View>
   );
 }

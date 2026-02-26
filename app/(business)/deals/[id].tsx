@@ -4,6 +4,7 @@ import {
   Alert,
   Keyboard,
   Pressable,
+  RefreshControl,
   ScrollView,
   Share,
   Text,
@@ -14,6 +15,7 @@ import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MapView, { Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
+import * as Haptics from 'expo-haptics';
 import Header from '@/components/nav/Header';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -50,16 +52,16 @@ interface Deal {
 // Helpers
 // ---------------------------------------------------------------------------
 
-function formatTimeRemaining(expiresAt: string): string {
+function formatTimeRemaining(expiresAt: string, expiredLabel = 'Expired', leftLabel = 'left'): string {
   const diff = new Date(expiresAt).getTime() - Date.now();
-  if (diff <= 0) return 'Expired';
+  if (diff <= 0) return expiredLabel;
   const totalMinutes = Math.floor(diff / 60000);
   const days = Math.floor(totalMinutes / 1440);
   const hours = Math.floor((totalMinutes % 1440) / 60);
   const minutes = totalMinutes % 60;
-  if (days > 0) return `${days}d ${hours}h left`;
-  if (hours > 0) return `${hours}h ${minutes}m left`;
-  return `${minutes}m left`;
+  if (days > 0) return `${days}d ${hours}h ${leftLabel}`;
+  if (hours > 0) return `${hours}h ${minutes}m ${leftLabel}`;
+  return `${minutes}m ${leftLabel}`;
 }
 
 function discountPercent(original: number, discounted: number): number {
@@ -79,7 +81,7 @@ function statusBadgeVariant(status: DealStatus): 'success' | 'error' | 'warning'
 
 function SectionLabel({ label }: { label: string }) {
   return (
-    <Text className="text-[#8a8a8f] text-xs font-semibold uppercase tracking-widest mb-3">
+    <Text className="text-text-secondary text-xs font-semibold uppercase tracking-widest mb-3">
       {label}
     </Text>
   );
@@ -106,6 +108,7 @@ export default function DealDetailScreen() {
   const [loading, setLoading] = useState(!initialDeal);
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editTitle, setEditTitle] = useState('');
   const [editDescription, setEditDescription] = useState('');
@@ -122,6 +125,26 @@ export default function DealDetailScreen() {
   const [geocoding, setGeocoding] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mapRef = useRef<MapView>(null);
+
+  const fetchDeal = useCallback(async () => {
+    if (!id) return;
+    try {
+      const result = await api.get<Deal>(`/api/deals/${id}`);
+      setDeal(result);
+      setError(null);
+    } catch (err) {
+      // Don't overwrite existing deal on refresh failure
+      if (!deal) {
+        setError(err instanceof Error ? err.message : 'Failed to load deal');
+      }
+    }
+  }, [id]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await fetchDeal();
+    setRefreshing(false);
+  }, [fetchDeal]);
 
   useEffect(() => {
     if (initialDeal) setLoading(false);
@@ -219,12 +242,13 @@ export default function DealDetailScreen() {
         url: `https://neardeal.ro/deals/${deal.dealId}`,
       });
     } catch (err) {
-      Alert.alert('Error', err instanceof Error ? err.message : 'Failed to share deal');
+      Alert.alert(t('common.error', 'Error'), err instanceof Error ? err.message : t('deals.validation.failedToShare', 'Failed to share deal'));
     }
   }, [deal]);
 
   const handleEdit = useCallback(() => {
     if (!deal) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setEditTitle(deal.title);
     setEditDescription(deal.description);
     setEditAddress(deal.address || '');
@@ -258,7 +282,7 @@ export default function DealDetailScreen() {
       setDeal((prev) => prev ? { ...prev, ...updates } as Deal : prev);
       setEditing(false);
     } catch (err) {
-      Alert.alert('Error', err instanceof Error ? err.message : 'Failed to update deal');
+      Alert.alert(t('common.error', 'Error'), err instanceof Error ? err.message : t('deals.validation.failedToUpdate', 'Failed to update deal'));
     } finally {
       setActionLoading(false);
     }
@@ -266,28 +290,31 @@ export default function DealDetailScreen() {
 
   const handlePause = useCallback(async () => {
     if (!id || actionLoading) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setActionLoading(true);
     try {
       await api.patch(`/api/deals/${id}`, { status: 'paused' });
       setDeal((prev) => prev ? { ...prev, status: 'paused' } : prev);
     } catch (err) {
-      Alert.alert('Error', err instanceof Error ? err.message : 'Failed to pause deal');
+      Alert.alert(t('common.error', 'Error'), err instanceof Error ? err.message : t('deals.validation.failedToPause', 'Failed to pause deal'));
     } finally { setActionLoading(false); }
   }, [id, actionLoading]);
 
   const handleActivate = useCallback(async () => {
     if (!id || actionLoading) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setActionLoading(true);
     try {
       await api.patch(`/api/deals/${id}`, { status: 'active' });
       setDeal((prev) => prev ? { ...prev, status: 'active' } : prev);
     } catch (err) {
-      Alert.alert('Error', err instanceof Error ? err.message : 'Failed to activate deal');
+      Alert.alert(t('common.error', 'Error'), err instanceof Error ? err.message : t('deals.validation.failedToActivate', 'Failed to activate deal'));
     } finally { setActionLoading(false); }
   }, [id, actionLoading]);
 
   const handleDelete = useCallback(async () => {
     if (!id || actionLoading) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     Alert.alert(
       t('deals.detail.delete'),
       t('deals.detail.deleteConfirm'),
@@ -302,7 +329,7 @@ export default function DealDetailScreen() {
               await api.delete(`/api/deals/${id}`);
               router.back();
             } catch (err) {
-              Alert.alert('Error', err instanceof Error ? err.message : 'Failed to delete deal');
+              Alert.alert(t('common.error', 'Error'), err instanceof Error ? err.message : t('deals.validation.failedToDelete', 'Failed to delete deal'));
             } finally { setActionLoading(false); }
           },
         },
@@ -314,7 +341,7 @@ export default function DealDetailScreen() {
 
   if (loading && !deal) {
     return (
-      <View className="flex-1 bg-[#0c0c0f]">
+      <View className="flex-1 bg-bg">
         <Header title={t('deals.myDeals')} showBack />
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator color="#c8e000" />
@@ -325,10 +352,10 @@ export default function DealDetailScreen() {
 
   if (error && !deal) {
     return (
-      <View className="flex-1 bg-[#0c0c0f]">
+      <View className="flex-1 bg-bg">
         <Header title={t('deals.myDeals')} showBack />
         <View className="flex-1 items-center justify-center px-8">
-          <Text className="text-[#ef4444] text-center mb-4">{error}</Text>
+          <Text className="text-error text-center mb-4">{error}</Text>
           <Button variant="secondary" title={t('common.retry')} onPress={() => router.back()} />
         </View>
       </View>
@@ -337,10 +364,10 @@ export default function DealDetailScreen() {
 
   if (!deal) {
     return (
-      <View className="flex-1 bg-[#0c0c0f]">
+      <View className="flex-1 bg-bg">
         <Header title={t('deals.myDeals')} showBack />
         <View className="flex-1 items-center justify-center px-8">
-          <Text className="text-[#8a8a8f] text-center">{t('common.noData')}</Text>
+          <Text className="text-text-secondary text-center">{t('common.noData')}</Text>
         </View>
       </View>
     );
@@ -350,7 +377,7 @@ export default function DealDetailScreen() {
 
   const progress = deal.maxClaims > 0 ? Math.min(deal.claimCount / deal.maxClaims, 1) : 0;
   const discount = discountPercent(deal.originalPrice, deal.discountedPrice);
-  const timeLabel = formatTimeRemaining(deal.expiresAt);
+  const timeLabel = formatTimeRemaining(deal.expiresAt, t('deals.expired', 'Expired'), t('deals.timeLeft', 'left'));
   const expiryDate = new Date(deal.expiresAt).toLocaleDateString('en-GB', {
     day: '2-digit', month: 'short', year: 'numeric',
   });
@@ -358,12 +385,12 @@ export default function DealDetailScreen() {
 
   const headerRight = !editing ? (
     <Pressable onPress={handleEdit} className="py-1 px-2">
-      <Text className="text-[#c8e000] text-sm font-semibold">{t('deals.detail.edit')}</Text>
+      <Text className="text-accent text-sm font-semibold">{t('deals.detail.edit')}</Text>
     </Pressable>
   ) : undefined;
 
   return (
-    <View className="flex-1 bg-[#0c0c0f]">
+    <View className="flex-1 bg-bg">
       <Header title={deal.title} showBack rightAction={headerRight} />
 
       <ScrollView
@@ -371,6 +398,14 @@ export default function DealDetailScreen() {
         contentContainerStyle={{ paddingBottom: editing ? 100 : 32 }}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="always"
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#c8e000"
+            colors={['#c8e000']}
+          />
+        }
       >
         <View className="px-4 pt-5">
 
@@ -401,7 +436,7 @@ export default function DealDetailScreen() {
             ) : (
               <>
                 <Text className="text-white text-2xl font-bold mb-2">{deal.title}</Text>
-                <Text className="text-[#8a8a8f] text-sm leading-5">{deal.description}</Text>
+                <Text className="text-text-secondary text-sm leading-5">{deal.description}</Text>
               </>
             )}
           </View>
@@ -409,30 +444,33 @@ export default function DealDetailScreen() {
           {/* Edit: address */}
           {editing && (
             <View className="mb-4">
-              <Text className="text-[#8a8a8f] text-xs font-semibold uppercase tracking-widest mb-3">
+              <Text className="text-text-secondary text-xs font-semibold uppercase tracking-widest mb-3">
                 {t('deals.detail.location')}
               </Text>
 
               <Input
-                label="Address"
-                placeholder="Start typing an address..."
+                label={t('deals.detail.address', 'Address')}
+                placeholder={t('deals.create.addressPlaceholder', 'Start typing an address...')}
                 value={editAddress}
                 onChangeText={handleAddressChange}
               />
               {geocoding && (
                 <View className="flex-row items-center mt-1.5">
                   <ActivityIndicator size="small" color="#c8e000" />
-                  <Text className="text-[#8a8a8f] text-xs ml-2">Finding location...</Text>
+                  <Text className="text-text-secondary text-xs ml-2">{t('deals.detail.findingLocation', 'Finding location...')}</Text>
                 </View>
               )}
 
               {showSuggestions && suggestionLabels.length > 0 && (
-                <View className="mt-1 bg-[#1a1a1f] rounded-lg border border-[#2a2a30] overflow-hidden">
+                <View className="mt-1 bg-surface rounded-lg border border-border overflow-hidden">
                   {suggestionLabels.map((label, idx) => (
                     <Pressable
                       key={idx}
-                      onPress={() => selectSuggestion(label, idx)}
-                      className="px-3 py-3 border-b border-[#2a2a30]"
+                      onPress={() => {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        selectSuggestion(label, idx);
+                      }}
+                      className="px-3 py-3 border-b border-border"
                       style={idx === suggestionLabels.length - 1 ? { borderBottomWidth: 0 } : undefined}
                     >
                       <Text className="text-white text-sm" numberOfLines={2}>{label}</Text>
@@ -444,14 +482,14 @@ export default function DealDetailScreen() {
               <View className="flex-row gap-3 mt-3">
                 <View className="flex-1">
                   <Input
-                    label="City"
+                    label={t('deals.detail.city', 'City')}
                     value={editCity}
                     onChangeText={setEditCity}
                   />
                 </View>
                 <View className="flex-1">
                   <Input
-                    label="District"
+                    label={t('deals.detail.district', 'District')}
                     value={editDistrict}
                     onChangeText={setEditDistrict}
                   />
@@ -460,7 +498,7 @@ export default function DealDetailScreen() {
 
               {editLat != null && editLng != null && (
                 <View
-                  className="mt-3 w-full rounded-lg overflow-hidden border border-[#2a2a30]"
+                  className="mt-3 w-full rounded-lg overflow-hidden border border-border"
                   style={{ height: 250 }}
                   onStartShouldSetResponder={() => true}
                   onMoveShouldSetResponder={() => true}
@@ -491,9 +529,9 @@ export default function DealDetailScreen() {
                       </View>
                     </Marker>
                   </MapView>
-                  <View className="absolute bottom-2 left-2 right-2 bg-[#0c0c0f]/80 rounded-md px-3 py-1.5">
-                    <Text className="text-[#8a8a8f] text-xs text-center">
-                      Drag the pin to adjust the exact location
+                  <View className="absolute bottom-2 left-2 right-2 bg-bg/80 rounded-md px-3 py-1.5">
+                    <Text className="text-text-secondary text-xs text-center">
+                      {t('deals.detail.dragPinAdjust', 'Drag the pin to adjust the exact location')}
                     </Text>
                   </View>
                 </View>
@@ -506,11 +544,11 @@ export default function DealDetailScreen() {
             <>
               {/* Pricing Card */}
               <Card className="mb-3">
-                <Text className="text-[#8a8a8f] text-xs font-semibold uppercase tracking-widest mb-2">
+                <Text className="text-text-secondary text-xs font-semibold uppercase tracking-widest mb-2">
                   {t('deals.detail.pricing')}
                 </Text>
                 <View className="flex-row items-baseline gap-3">
-                  <Text className="text-[#8a8a8f] text-sm line-through">
+                  <Text className="text-text-secondary text-sm line-through">
                     {deal.originalPrice} RON
                   </Text>
                   <Text className="text-white text-2xl font-bold">
@@ -530,14 +568,14 @@ export default function DealDetailScreen() {
               {/* Progress Bar */}
               <Card className="mb-3">
                 <View className="flex-row items-center justify-between mb-2">
-                  <Text className="text-[#8a8a8f] text-xs">{t('deals.detail.progress')}</Text>
-                  <Text className="text-[#8a8a8f] text-xs">
+                  <Text className="text-text-secondary text-xs">{t('deals.detail.progress')}</Text>
+                  <Text className="text-text-secondary text-xs">
                     {deal.claimCount}/{deal.maxClaims}
                   </Text>
                 </View>
-                <View className="h-2 bg-[#2a2a30] rounded-full overflow-hidden">
+                <View className="h-2 bg-border rounded-full overflow-hidden">
                   <View
-                    className="h-full bg-[#c8e000] rounded-full"
+                    className="h-full bg-accent rounded-full"
                     style={{ width: `${progress * 100}%` }}
                   />
                 </View>
@@ -545,8 +583,8 @@ export default function DealDetailScreen() {
 
               {/* Location & Expiry Card */}
               <Card className="mb-3">
-                <View className="flex-row items-center justify-between pb-3 border-b border-[#2a2a30]">
-                  <Text className="text-[#8a8a8f] text-xs uppercase tracking-wide">
+                <View className="flex-row items-center justify-between pb-3 border-b border-border">
+                  <Text className="text-text-secondary text-xs uppercase tracking-wide">
                     {t('deals.detail.location')}
                   </Text>
                   <Text className="text-white text-sm font-medium">
@@ -554,13 +592,13 @@ export default function DealDetailScreen() {
                   </Text>
                 </View>
                 <View className="flex-row items-center justify-between pt-3">
-                  <Text className="text-[#8a8a8f] text-xs uppercase tracking-wide">
+                  <Text className="text-text-secondary text-xs uppercase tracking-wide">
                     {t('deals.detail.expiry')}
                   </Text>
                   <View className="flex-row items-center gap-2">
                     <Text className="text-white text-sm">{expiryDate}</Text>
                     <Text className={`text-xs font-semibold ${
-                      deal.status === 'expired' ? 'text-[#ef4444]' : 'text-[#c8e000]'
+                      deal.status === 'expired' ? 'text-error' : 'text-accent'
                     }`}>
                       {timeLabel}
                     </Text>
@@ -597,7 +635,7 @@ export default function DealDetailScreen() {
           {/* Manage Section */}
           {!editing && (
             <Card className="mb-4">
-              <Text className="text-[#8a8a8f] text-xs font-semibold uppercase tracking-widest mb-3">
+              <Text className="text-text-secondary text-xs font-semibold uppercase tracking-widest mb-3">
                 {t('deals.detail.manage')}
               </Text>
               <View className="gap-2">
@@ -639,7 +677,7 @@ export default function DealDetailScreen() {
       {/* Edit mode bottom bar */}
       {editing && (
         <View
-          className="px-4 pt-3 bg-[#0c0c0f] border-t border-[#2a2a30]"
+          className="px-4 pt-3 bg-bg border-t border-border"
           style={{ paddingBottom: insets.bottom + 8 }}
         >
           <View className="flex-row gap-3">

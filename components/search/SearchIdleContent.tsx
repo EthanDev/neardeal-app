@@ -50,7 +50,7 @@ export default function SearchIdleContent({ onSelectQuery }: Props) {
       {/* Recent Searches */}
       {recentSearches.length > 0 && (
         <View className="px-4 pt-4 pb-2">
-          <Text className="text-[14px] font-bold text-[#fff] mb-3">
+          <Text className="text-[14px] font-bold text-text-primary mb-3">
             {t('consumer.search.recent', { defaultValue: 'Recent searches' })}
           </Text>
           {recentSearches.map((item) => (
@@ -62,10 +62,10 @@ export default function SearchIdleContent({ onSelectQuery }: Props) {
                 <View className="mr-3">
                   <SearchIcon size={14} color="#8a8a8f" />
                 </View>
-                <Text className="text-[14px] text-[#fff]">{item}</Text>
+                <Text className="text-[14px] text-text-primary">{item}</Text>
               </Pressable>
               <Pressable onPress={() => removeRecent(item)} hitSlop={8}>
-                <Text className="text-[16px] text-[#666]">x</Text>
+                <Text className="text-[16px] text-text-secondary">x</Text>
               </Pressable>
             </View>
           ))}
@@ -74,7 +74,7 @@ export default function SearchIdleContent({ onSelectQuery }: Props) {
 
       {/* Browse by Area */}
       <View className="px-4 pt-4 pb-2">
-        <Text className="text-[14px] font-bold text-[#fff] mb-3">
+        <Text className="text-[14px] font-bold text-text-primary mb-3">
           {t('consumer.search.browseArea', { defaultValue: 'Browse by area' })}
         </Text>
         <View className="flex-row flex-wrap gap-2">
@@ -82,9 +82,9 @@ export default function SearchIdleContent({ onSelectQuery }: Props) {
             <Pressable
               key={area}
               onPress={() => onSelectQuery(area)}
-              className="bg-[#1a1a1f] border border-[#2a2a30] rounded-full px-4 py-2"
+              className="bg-surface border border-border rounded-full px-4 py-2"
             >
-              <Text className="text-[13px] text-[#fff]">{area}</Text>
+              <Text className="text-[13px] text-text-primary">{area}</Text>
             </Pressable>
           ))}
         </View>
@@ -92,7 +92,7 @@ export default function SearchIdleContent({ onSelectQuery }: Props) {
 
       {/* Popular Categories */}
       <View className="px-4 pt-4 pb-6">
-        <Text className="text-[14px] font-bold text-[#fff] mb-3">
+        <Text className="text-[14px] font-bold text-text-primary mb-3">
           {t('consumer.search.popular', { defaultValue: 'Popular categories' })}
         </Text>
         <View className="flex-row flex-wrap gap-2">
@@ -100,12 +100,12 @@ export default function SearchIdleContent({ onSelectQuery }: Props) {
             <Pressable
               key={cat.value}
               onPress={() => onSelectQuery(cat.label)}
-              className="bg-[#1a1a1f] border border-[#2a2a30] rounded-full px-4 py-2 flex-row items-center"
+              className="bg-surface border border-border rounded-full px-4 py-2 flex-row items-center"
             >
               <View style={{ marginRight: 5 }}>
                 {getCategoryIcon(cat.value, 14, '#8a8a8f')}
               </View>
-              <Text className="text-[13px] text-[#fff]">{cat.label}</Text>
+              <Text className="text-[13px] text-text-primary">{cat.label}</Text>
             </Pressable>
           ))}
         </View>

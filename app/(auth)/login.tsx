@@ -38,43 +38,9 @@ const loginSchema = z.object({
 type LoginFormValues = z.infer<typeof loginSchema>;
 
 // ---------------------------------------------------------------------------
-// Eye icon primitives (no emoji, pure SVG-like shapes via View)
-// ---------------------------------------------------------------------------
-
 function EyeIcon({ visible }: { visible: boolean }) {
-  return (
-    <View className="w-5 h-5 items-center justify-center">
-      {visible ? (
-        // Eye open: outer oval + pupil dot
-        <>
-          <View
-            className="w-5 h-3 rounded-full border border-[#8a8a8f]"
-            style={{ borderWidth: 1.5 }}
-          />
-          <View
-            className="absolute w-1.5 h-1.5 rounded-full bg-[#8a8a8f]"
-          />
-        </>
-      ) : (
-        // Eye closed: oval + diagonal slash hint
-        <>
-          <View
-            className="w-5 h-3 rounded-full border border-[#8a8a8f]"
-            style={{ borderWidth: 1.5, opacity: 0.4 }}
-          />
-          <View
-            style={{
-              position: 'absolute',
-              width: 22,
-              height: 1.5,
-              backgroundColor: '#8a8a8f',
-              transform: [{ rotate: '-35deg' }],
-            }}
-          />
-        </>
-      )}
-    </View>
-  );
+  const Feather = require('@expo/vector-icons/Feather').default;
+  return <Feather name={visible ? 'eye' : 'eye-off'} size={20} color="#8a8a8f" />;
 }
 
 // ---------------------------------------------------------------------------
@@ -121,7 +87,8 @@ export default function LoginScreen() {
   const { currentLanguage, changeLanguage } = useLanguage();
 
   const [showPassword, setShowPassword] = useState(false);
-  const [loginMode, setLoginMode] = useState<'consumer' | 'business'>('consumer');
+  const [loginMode, setLoginMode] = useState<'consumer' | 'business'>('business');
+  const [submitting, setSubmitting] = useState(false);
 
   const {
     control,
@@ -136,7 +103,7 @@ export default function LoginScreen() {
   function resolveFieldError(message?: string): string | undefined {
     if (!message) return undefined;
     if (message === 'validation.emailRequired') return t('auth.login.email') + ' ' + t('common.error').toLowerCase();
-    if (message === 'validation.emailInvalid') return t('auth.login.email') + ': ' + 'invalid format';
+    if (message === 'validation.emailInvalid') return t('auth.login.email') + ': ' + t('auth.validation.invalidFormat', 'invalid format');
     if (message === 'validation.passwordMin') return t('auth.signup.passwordHint');
     return message;
   }
@@ -146,17 +113,22 @@ export default function LoginScreen() {
   }
 
   async function onSubmit(values: LoginFormValues) {
+    setSubmitting(true);
     clearError();
-    const success =
-      loginMode === 'consumer'
-        ? await consumerLogin(values.email, values.password)
-        : await login(values.email, values.password);
-    if (success) {
-      if (loginMode === 'consumer') {
-        router.replace('/(tabs)/nearby');
-      } else {
-        router.replace('/(business)/dashboard');
+    try {
+      const success =
+        loginMode === 'consumer'
+          ? await consumerLogin(values.email, values.password)
+          : await login(values.email, values.password);
+      if (success) {
+        if (loginMode === 'consumer') {
+          router.replace('/(tabs)/nearby');
+        } else {
+          router.replace('/(business)/dashboard');
+        }
       }
+    } finally {
+      setSubmitting(false);
     }
   }
 
@@ -197,7 +169,7 @@ export default function LoginScreen() {
           </Text>
           {loginMode === 'business' ? (
             <Text className="text-[#8a8a8f] text-lg mt-1 tracking-widest uppercase">
-              Business
+              {t('auth.business', 'Business')}
             </Text>
           ) : (
             <Text className="text-[#8a8a8f] text-lg mt-1 tracking-widest uppercase">
@@ -270,8 +242,8 @@ export default function LoginScreen() {
             variant="primary"
             title={t('auth.login.submit')}
             onPress={handleSubmit(onSubmit)}
-            loading={isLoading}
-            disabled={isLoading}
+            loading={submitting || isLoading}
+            disabled={submitting || isLoading}
             fullWidth
             size="lg"
           />
@@ -299,22 +271,22 @@ export default function LoginScreen() {
           <View className="gap-3" style={{ opacity: 0.5 }}>
             <Button
               variant="secondary"
-              title={`${t('auth.login.apple')} — Coming Soon`}
-              onPress={() => Alert.alert('Coming Soon', 'Social login coming soon. Please use email login.')}
+              title={`${t('auth.login.apple')} — ${t('common.comingSoon', 'Coming Soon')}`}
+              onPress={() => Alert.alert(t('common.comingSoon', 'Coming Soon'), t('common.comingSoonMessage', 'Social login coming soon. Please use email login.'))}
               disabled={true}
               fullWidth
             />
             <Button
               variant="secondary"
-              title={`${t('auth.login.google')} — Coming Soon`}
-              onPress={() => Alert.alert('Coming Soon', 'Social login coming soon. Please use email login.')}
+              title={`${t('auth.login.google')} — ${t('common.comingSoon', 'Coming Soon')}`}
+              onPress={() => Alert.alert(t('common.comingSoon', 'Coming Soon'), t('common.comingSoonMessage', 'Social login coming soon. Please use email login.'))}
               disabled={true}
               fullWidth
             />
             <Button
               variant="secondary"
-              title={`${t('auth.login.facebook')} — Coming Soon`}
-              onPress={() => Alert.alert('Coming Soon', 'Social login coming soon. Please use email login.')}
+              title={`${t('auth.login.facebook')} — ${t('common.comingSoon', 'Coming Soon')}`}
+              onPress={() => Alert.alert(t('common.comingSoon', 'Coming Soon'), t('common.comingSoonMessage', 'Social login coming soon. Please use email login.'))}
               disabled={true}
               fullWidth
             />
@@ -337,19 +309,15 @@ export default function LoginScreen() {
 
           {/* Business / Consumer toggle */}
           <View className="items-center pt-2 pb-10">
-            <Pressable
+            <Button
+              variant="primary"
+              size="sm"
+              title={loginMode === 'consumer' ? t('auth.imABusiness', "I'm a business") : t('auth.imAConsumer', "I'm a consumer")}
               onPress={() => {
                 clearError();
                 setLoginMode((prev) => (prev === 'consumer' ? 'business' : 'consumer'));
               }}
-              className="self-center px-5 py-2 rounded-full"
-              style={{ backgroundColor: '#c8e000' }}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
-              <Text className="text-sm font-semibold" style={{ color: '#111' }}>
-                {loginMode === 'consumer' ? "I'm a business" : "I'm a consumer"}
-              </Text>
-            </Pressable>
+            />
           </View>
         </View>
       </ScrollView>

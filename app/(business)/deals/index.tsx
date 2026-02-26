@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import * as Haptics from 'expo-haptics';
 
 import Header from '@/components/nav/Header';
 import { Badge } from '@/components/ui/Badge';
@@ -17,6 +18,7 @@ import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/lib/store';
+import { DealsListSkeleton } from '@/components/skeletons/DealsListSkeleton';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -46,18 +48,18 @@ type TabKey = 'active' | 'expired' | 'draft';
 // Helpers
 // ---------------------------------------------------------------------------
 
-function formatTimeRemaining(expiresAt: string): string {
+function formatTimeRemaining(expiresAt: string, expiredLabel = 'Expired', leftLabel = 'left'): string {
   const diff = new Date(expiresAt).getTime() - Date.now();
-  if (diff <= 0) return 'Expired';
+  if (diff <= 0) return expiredLabel;
 
   const totalMinutes = Math.floor(diff / 60000);
   const days = Math.floor(totalMinutes / 1440);
   const hours = Math.floor((totalMinutes % 1440) / 60);
   const minutes = totalMinutes % 60;
 
-  if (days > 0) return `${days}d ${hours}h left`;
-  if (hours > 0) return `${hours}h ${minutes}m left`;
-  return `${minutes}m left`;
+  if (days > 0) return `${days}d ${hours}h ${leftLabel}`;
+  if (hours > 0) return `${hours}h ${minutes}m ${leftLabel}`;
+  return `${minutes}m ${leftLabel}`;
 }
 
 function statusBadgeVariant(status: DealStatus): 'success' | 'error' | 'warning' {
@@ -78,7 +80,7 @@ interface DealCardProps {
 function DealCard({ deal, onPress }: DealCardProps) {
   const { t } = useTranslation();
   const progress = deal.maxClaims > 0 ? Math.min(deal.claimCount / deal.maxClaims, 1) : 0;
-  const timeLabel = formatTimeRemaining(deal.expiresAt);
+  const timeLabel = formatTimeRemaining(deal.expiresAt, t('deals.expired', 'Expired'), t('deals.timeLeft', 'left'));
 
   return (
     <Card onPress={onPress} className="mb-3 mx-4">
@@ -103,9 +105,9 @@ function DealCard({ deal, onPress }: DealCardProps) {
 
       {/* Claims progress bar */}
       <View className="mb-1">
-        <View className="h-1.5 bg-[#2a2a30] rounded-full overflow-hidden">
+        <View className="h-1.5 bg-border rounded-full overflow-hidden">
           <View
-            className="h-full bg-[#c8e000] rounded-full"
+            className="h-full bg-accent rounded-full"
             style={{ width: `${progress * 100}%` }}
           />
         </View>
@@ -113,12 +115,12 @@ function DealCard({ deal, onPress }: DealCardProps) {
 
       {/* Bottom row: claimed count + time remaining */}
       <View className="flex-row items-center justify-between mt-2">
-        <Text className="text-[#8a8a8f] text-xs">
+        <Text className="text-text-secondary text-xs">
           {deal.claimCount}/{deal.maxClaims} {t('deals.claims').toLowerCase()}
         </Text>
         <Text
           className={`text-xs font-medium ${
-            deal.status === 'expired' ? 'text-[#ef4444]' : 'text-[#8a8a8f]'
+            deal.status === 'expired' ? 'text-error' : 'text-text-secondary'
           }`}
         >
           {timeLabel}
@@ -157,7 +159,7 @@ export default function MyDealsScreen() {
         setError(null);
         return;
       }
-      setError(err instanceof Error ? err.message : 'Failed to load deals');
+      setError(err instanceof Error ? err.message : t('deals.validation.failedToLoad', 'Failed to load deals'));
     }
   }, [businessId]);
 
@@ -193,28 +195,31 @@ export default function MyDealsScreen() {
       : t('deals.draft');
 
   return (
-    <View className="flex-1 bg-[#0c0c0f]">
+    <View className="flex-1 bg-bg">
       <Header title={t('deals.myDeals')} />
 
       {/* Segmented control */}
-      <View className="flex-row px-4 pt-4 pb-0 border-b border-[#2a2a30]">
+      <View className="flex-row px-4 pt-4 pb-0 border-b border-border">
         {TABS.map((tab) => {
           const isActive = tab === selectedTab;
           return (
             <Pressable
               key={tab}
-              onPress={() => setSelectedTab(tab)}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setSelectedTab(tab);
+              }}
               className="flex-1 items-center pb-3"
             >
               <Text
                 className={`text-sm font-medium ${
-                  isActive ? 'text-white' : 'text-[#8a8a8f]'
+                  isActive ? 'text-white' : 'text-text-secondary'
                 }`}
               >
                 {t(`deals.${tab}`)}
               </Text>
               {isActive && (
-                <View className="absolute bottom-0 left-2 right-2 h-0.5 bg-[#c8e000] rounded-full" />
+                <View className="absolute bottom-0 left-2 right-2 h-0.5 bg-accent rounded-full" />
               )}
             </Pressable>
           );
@@ -223,12 +228,10 @@ export default function MyDealsScreen() {
 
       {/* Content */}
       {loading ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color="#c8e000" />
-        </View>
+        <DealsListSkeleton />
       ) : error && deals.length === 0 ? (
         <View className="flex-1 items-center justify-center px-8">
-          <Text className="text-[#ef4444] text-center mb-4">{error}</Text>
+          <Text className="text-error text-center mb-4">{error}</Text>
           <Button
             variant="secondary"
             title={t('common.retry') ?? 'Retry'}
@@ -255,13 +258,14 @@ export default function MyDealsScreen() {
           }
           ListEmptyComponent={
             <EmptyState
-              title={emptyMessage}
-              message={
+              icon={selectedTab === 'active' ? 'tag' : selectedTab === 'expired' ? 'clock' : 'edit'}
+              title={selectedTab === 'active' ? t('deals.noneYet', 'No deals yet') : emptyMessage}
+              subtitle={
                 selectedTab === 'active'
-                  ? t('deals.createFirst')
+                  ? t('deals.createFirst', 'Create your first deal to start attracting customers')
                   : t('common.noData')
               }
-              actionLabel={selectedTab === 'active' ? t('deals.create.title', { defaultValue: 'Create Deal' }) : undefined}
+              actionLabel={selectedTab === 'active' ? t('deals.create.createDealButton', 'Create Deal') : undefined}
               onAction={
                 selectedTab === 'active'
                   ? () => router.push('/(business)/deals/create')

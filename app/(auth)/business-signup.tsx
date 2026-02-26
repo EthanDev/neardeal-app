@@ -14,6 +14,8 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 
+const Feather = require('@expo/vector-icons/Feather').default;
+
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { StepIndicator } from '../../components/ui/StepIndicator';
@@ -86,33 +88,7 @@ type ConfirmEmailValues = z.infer<typeof confirmEmailSchema>;
 
 function EyeIcon({ visible }: { visible: boolean }) {
   return (
-    <View className="w-5 h-5 items-center justify-center">
-      {visible ? (
-        <>
-          <View
-            className="w-5 h-3 rounded-full border border-[#8a8a8f]"
-            style={{ borderWidth: 1.5 }}
-          />
-          <View className="absolute w-1.5 h-1.5 rounded-full bg-[#8a8a8f]" />
-        </>
-      ) : (
-        <>
-          <View
-            className="w-5 h-3 rounded-full border border-[#8a8a8f]"
-            style={{ borderWidth: 1.5, opacity: 0.4 }}
-          />
-          <View
-            style={{
-              position: 'absolute',
-              width: 22,
-              height: 1.5,
-              backgroundColor: '#8a8a8f',
-              transform: [{ rotate: '-35deg' }],
-            }}
-          />
-        </>
-      )}
-    </View>
+    <Feather name={visible ? 'eye' : 'eye-off'} size={18} color="#8a8a8f" />
   );
 }
 
@@ -200,9 +176,7 @@ function CategoryRow({
       <Text className={selected ? 'text-[#c8e000] font-semibold' : 'text-white'}>{label}</Text>
       {selected && (
         <View className="w-5 h-5 rounded-full bg-[#c8e000] items-center justify-center">
-          <View style={{ width: 8, height: 8 }}>
-            <Text style={{ fontSize: 9, color: '#0c0c0f', fontWeight: 'bold' }}>V</Text>
-          </View>
+          <Feather name="check" size={12} color="#0c0c0f" />
         </View>
       )}
     </Pressable>
@@ -298,19 +272,19 @@ export default function BusinessSignupScreen() {
       case 'validation.emailRequired':
         return t('auth.signup.email') + ' ' + t('common.error').toLowerCase();
       case 'validation.emailInvalid':
-        return t('auth.signup.email') + ': invalid format';
+        return t('auth.signup.email') + ': ' + t('auth.validation.invalidFormat', 'invalid format');
       case 'validation.passwordMin':
         return t('auth.signup.passwordHint');
       case 'validation.passwordUppercase':
-        return 'Password must contain at least one uppercase letter';
+        return t('auth.validation.passwordUppercase', 'Password must contain at least one uppercase letter');
       case 'validation.passwordNumber':
-        return 'Password must contain at least one number';
+        return t('auth.validation.passwordNumber', 'Password must contain at least one number');
       case 'validation.passwordMismatch':
-        return 'Passwords do not match';
+        return t('auth.validation.passwordMismatch', 'Passwords do not match');
       case 'validation.codeLength':
-        return 'Code must be exactly 6 digits';
+        return t('auth.validation.codeLength', 'Code must be exactly 6 digits');
       case 'validation.codeDigits':
-        return 'Code must contain digits only';
+        return t('auth.validation.codeDigits', 'Code must contain digits only');
       default:
         return message;
     }
@@ -417,10 +391,7 @@ export default function BusinessSignupScreen() {
             {/* Icon area */}
             <View className="items-center pt-2 pb-4">
               <View className="w-16 h-16 rounded-full bg-[#1a1a1f] border-2 border-[#c8e000] items-center justify-center mb-4">
-                <View className="w-8 h-6 border-2 border-[#c8e000] rounded-sm items-center justify-center">
-                  <View className="w-4 h-0.5 bg-[#c8e000] mb-0.5" />
-                  <View className="w-4 h-0.5 bg-[#c8e000]" />
-                </View>
+                <Feather name="mail" size={28} color="#c8e000" />
               </View>
               <Text className="text-white text-xl font-semibold text-center">
                 {t('auth.signup.confirmEmail.title')}
@@ -494,7 +465,10 @@ export default function BusinessSignupScreen() {
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             className="flex-row items-center"
           >
-            <Text className="text-[#8a8a8f] text-sm">← {t('common.back', { defaultValue: 'Back' })}</Text>
+            <View className="flex-row items-center">
+              <Feather name="arrow-left" size={16} color="#8a8a8f" />
+              <Text className="text-[#8a8a8f] text-sm ml-1">{t('common.back', { defaultValue: 'Back' })}</Text>
+            </View>
           </Pressable>
 
           {/* Logo */}
@@ -506,7 +480,7 @@ export default function BusinessSignupScreen() {
               NearDeal
             </Text>
             <Text className="text-[#8a8a8f] text-xs tracking-widest uppercase mt-0.5">
-              Business
+              {t('auth.business', 'Business')}
             </Text>
           </View>
 
@@ -713,18 +687,7 @@ export default function BusinessSignupScreen() {
                       ? getCategoryLabel(selectedCategory)
                       : t('auth.signup.selectCategory')}
                   </Text>
-                  {/* Chevron down */}
-                  <View
-                    style={{
-                      width: 10,
-                      height: 10,
-                      borderBottomWidth: 1.5,
-                      borderRightWidth: 1.5,
-                      borderColor: '#8a8a8f',
-                      transform: [{ rotate: '45deg' }],
-                      marginBottom: 4,
-                    }}
-                  />
+                  <Feather name="chevron-down" size={18} color="#8a8a8f" />
                 </Pressable>
                 {errors2.category ? (
                   <Text className="text-[#ef4444] text-xs mt-1">

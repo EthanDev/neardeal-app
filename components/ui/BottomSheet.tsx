@@ -51,14 +51,14 @@ export function BottomSheet({ visible, onClose, title, children }: BottomSheetPr
 
         <Animated.View
           style={[styles.sheet, { transform: [{ translateY }] }]}
-          className="bg-[#1a1a1f] rounded-t-2xl"
+          className="bg-surface rounded-t-2xl"
         >
           <View className="items-center pt-3 pb-2">
-            <View className="w-10 h-1 rounded-full bg-[#2a2a30]" />
+            <View className="w-10 h-1 rounded-full bg-border" />
           </View>
 
           {title ? (
-            <View className="px-5 pb-3 border-b border-[#2a2a30]">
+            <View className="px-5 pb-3 border-b border-border">
               <Text className="text-white text-lg font-semibold">{title}</Text>
             </View>
           ) : null}

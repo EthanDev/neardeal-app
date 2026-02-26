@@ -2,14 +2,18 @@ import React, { useState } from 'react';
 import { Alert, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import * as Haptics from 'expo-haptics';
+
+const Feather = require('@expo/vector-icons/Feather').default;
 
 import Header from '@/components/nav/Header';
+import { Button } from '@/components/ui/Button';
 import { useAuthStore, useUiStore } from '@/lib/store';
 import { api } from '@/lib/api';
 
 function SectionHeader({ title }: { title: string }) {
   return (
-    <Text className="text-[#8a8a8f] text-xs font-semibold uppercase tracking-wider mb-2 px-4">
+    <Text className="text-text-secondary text-xs font-semibold uppercase tracking-wider mb-2 px-4">
       {title}
     </Text>
   );
@@ -26,17 +30,23 @@ function MenuItem({
 }) {
   return (
     <Pressable
-      onPress={onPress}
-      className="flex-row items-center justify-between px-4 py-3.5 bg-[#1a1a1f] border-b border-[#2a2a30]"
+      onPress={() => {
+        const style = destructive
+          ? Haptics.ImpactFeedbackStyle.Heavy
+          : Haptics.ImpactFeedbackStyle.Light;
+        Haptics.impactAsync(style);
+        onPress();
+      }}
+      className="flex-row items-center justify-between px-4 py-3.5 bg-surface border-b border-border"
       style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
     >
       <Text
-        className={`text-base ${destructive ? 'text-[#ef4444]' : 'text-white'}`}
+        className={`text-base ${destructive ? 'text-error' : 'text-white'}`}
       >
         {label}
       </Text>
       {!destructive && (
-        <Text className="text-[#8a8a8f] text-base">{'>'}</Text>
+        <Feather name="chevron-right" size={18} color="#8a8a8f" />
       )}
     </Pressable>
   );
@@ -122,7 +132,7 @@ export default function BusinessProfileScreen() {
   };
 
   return (
-    <View className="flex-1 bg-[#0c0c0f]">
+    <View className="flex-1 bg-bg">
       <Header title={t('profile.title', { defaultValue: 'Profile' })} />
 
       <ScrollView
@@ -132,8 +142,8 @@ export default function BusinessProfileScreen() {
       >
         {/* Business identity */}
         <View className="items-center py-8">
-          <View className="w-20 h-20 rounded-full bg-[#1a1a1f] border-2 border-[#c8e000] items-center justify-center mb-3">
-            <Text className="text-3xl text-[#c8e000]">
+          <View className="w-20 h-20 rounded-full bg-surface border-2 border-accent items-center justify-center mb-3">
+            <Text className="text-3xl text-accent">
               {businessName.charAt(0).toUpperCase()}
             </Text>
           </View>
@@ -142,36 +152,36 @@ export default function BusinessProfileScreen() {
 
         {/* Inline edit form */}
         {isEditing && (
-          <View className="mx-4 mb-6 bg-[#1a1a1f] rounded-xl p-4">
+          <View className="mx-4 mb-6 bg-surface rounded-xl p-4">
             <Text className="text-white text-base font-semibold mb-4">
               {t('profile.editProfile', { defaultValue: 'Edit Profile' })}
             </Text>
 
-            <Text className="text-[#8a8a8f] text-xs mb-1">
+            <Text className="text-text-secondary text-xs mb-1">
               {t('profile.businessName', { defaultValue: 'Business Name' })}
             </Text>
             <TextInput
-              className="bg-[#0c0c0f] text-white px-3 py-2.5 rounded-lg mb-3 border border-[#2a2a30]"
+              className="bg-bg text-white px-3 py-2.5 rounded-lg mb-3 border border-border"
               value={editName}
               onChangeText={setEditName}
               placeholderTextColor="#8a8a8f"
             />
 
-            <Text className="text-[#8a8a8f] text-xs mb-1">
+            <Text className="text-text-secondary text-xs mb-1">
               {t('profile.address', { defaultValue: 'Address' })}
             </Text>
             <TextInput
-              className="bg-[#0c0c0f] text-white px-3 py-2.5 rounded-lg mb-3 border border-[#2a2a30]"
+              className="bg-bg text-white px-3 py-2.5 rounded-lg mb-3 border border-border"
               value={editAddress}
               onChangeText={setEditAddress}
               placeholderTextColor="#8a8a8f"
             />
 
-            <Text className="text-[#8a8a8f] text-xs mb-1">
+            <Text className="text-text-secondary text-xs mb-1">
               {t('profile.phone', { defaultValue: 'Phone' })}
             </Text>
             <TextInput
-              className="bg-[#0c0c0f] text-white px-3 py-2.5 rounded-lg mb-3 border border-[#2a2a30]"
+              className="bg-bg text-white px-3 py-2.5 rounded-lg mb-3 border border-border"
               value={editPhone}
               onChangeText={setEditPhone}
               keyboardType="phone-pad"
@@ -179,27 +189,28 @@ export default function BusinessProfileScreen() {
             />
 
             <View className="flex-row gap-3 mt-2">
-              <Pressable
-                onPress={handleCancelEdit}
-                className="flex-1 py-3 rounded-lg bg-[#2a2a30] items-center"
-                style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
-              >
-                <Text className="text-white text-sm font-semibold">
-                  {t('common.cancel', { defaultValue: 'Cancel' })}
-                </Text>
-              </Pressable>
-              <Pressable
-                onPress={handleSaveProfile}
-                disabled={isSaving}
-                className="flex-1 py-3 rounded-lg bg-[#c8e000] items-center"
-                style={({ pressed }) => ({ opacity: pressed || isSaving ? 0.7 : 1 })}
-              >
-                <Text className="text-[#0c0c0f] text-sm font-semibold">
-                  {isSaving
+              <View className="flex-1">
+                <Button
+                  variant="secondary"
+                  size="md"
+                  title={t('common.cancel', { defaultValue: 'Cancel' })}
+                  onPress={handleCancelEdit}
+                  fullWidth
+                />
+              </View>
+              <View className="flex-1">
+                <Button
+                  variant="primary"
+                  size="md"
+                  title={isSaving
                     ? t('common.saving', { defaultValue: 'Saving...' })
                     : t('common.save', { defaultValue: 'Save' })}
-                </Text>
-              </Pressable>
+                  onPress={handleSaveProfile}
+                  loading={isSaving}
+                  disabled={isSaving}
+                  fullWidth
+                />
+              </View>
             </View>
           </View>
         )}

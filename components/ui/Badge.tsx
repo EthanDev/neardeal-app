@@ -10,24 +10,24 @@ interface BadgeProps {
 
 const variantStyles: Record<BadgeVariant, { container: string; text: string }> = {
   accent: {
-    container: 'bg-[#c8e000]/20',
-    text: 'text-[#c8e000]',
+    container: 'bg-accent/20',
+    text: 'text-accent',
   },
   success: {
-    container: 'bg-[#22c55e]/20',
-    text: 'text-[#22c55e]',
+    container: 'bg-success/10',
+    text: 'text-success',
   },
   error: {
-    container: 'bg-[#ef4444]/20',
-    text: 'text-[#ef4444]',
+    container: 'bg-error/10',
+    text: 'text-error',
   },
   warning: {
-    container: 'bg-[#f59e0b]/20',
-    text: 'text-[#f59e0b]',
+    container: 'bg-warning/10',
+    text: 'text-warning',
   },
   neutral: {
-    container: 'bg-[#2a2a30]',
-    text: 'text-[#8a8a8f]',
+    container: 'bg-border',
+    text: 'text-text-secondary',
   },
 };
 

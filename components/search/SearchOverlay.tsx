@@ -86,11 +86,11 @@ export default function SearchOverlay({ visible, onClose }: Props) {
     >
       <SafeAreaView edges={['top']} className="flex-1">
         {/* Search Header */}
-        <View className="flex-row items-center bg-[#0c0c0f] px-3 py-2 border-b border-[#2a2a30]">
+        <View className="flex-row items-center bg-bg px-3 py-2 border-b border-border">
           <Pressable onPress={handleClose} className="p-2 mr-1">
-            <Text className="text-[18px] text-[#fff]">←</Text>
+            <Text className="text-[18px] text-text-primary">←</Text>
           </Pressable>
-          <View className="flex-1 flex-row items-center bg-[#1a1a1f] rounded-full px-3" style={{ height: 38 }}>
+          <View className="flex-1 flex-row items-center bg-surface rounded-full px-3" style={{ height: 38 }}>
             <Text className="text-[14px] mr-2">🔍</Text>
             <TextInput
               ref={inputRef}
@@ -98,7 +98,7 @@ export default function SearchOverlay({ visible, onClose }: Props) {
               onChangeText={setQuery}
               placeholder={t('consumer.search.placeholder', { defaultValue: 'Search deals...' })}
               placeholderTextColor="#8a8a8f"
-              className="flex-1 text-[14px] text-[#fff]"
+              className="flex-1 text-[14px] text-text-primary"
               returnKeyType="search"
               autoCorrect={false}
               onSubmitEditing={() => {
@@ -107,7 +107,7 @@ export default function SearchOverlay({ visible, onClose }: Props) {
             />
             {hasQuery && (
               <Pressable onPress={() => setQuery('')} hitSlop={8}>
-                <Text className="text-[16px] text-[#666]">✕</Text>
+                <Text className="text-[16px] text-text-secondary">✕</Text>
               </Pressable>
             )}
           </View>
@@ -127,7 +127,7 @@ export default function SearchOverlay({ visible, onClose }: Props) {
           ) : results.length === 0 ? (
             <View className="flex-1 items-center justify-center px-8">
               <Text className="text-[32px] mb-3">🔍</Text>
-              <Text className="text-[15px] text-[#8a8a8f] text-center">
+              <Text className="text-[15px] text-text-secondary text-center">
                 {t('consumer.search.noResults', { defaultValue: 'No deals found. Try a different search.' })}
               </Text>
             </View>

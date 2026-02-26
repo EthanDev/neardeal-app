@@ -1,5 +1,6 @@
 import React from 'react';
 import { Pressable, View } from 'react-native';
+import * as Haptics from 'expo-haptics';
 
 interface CardProps {
   children: React.ReactNode;
@@ -9,7 +10,7 @@ interface CardProps {
 
 export function Card({ children, className = '', onPress }: CardProps) {
   const baseClassName = [
-    'bg-[#1a1a1f] rounded-lg border border-[#2a2a30] p-4',
+    'bg-surface rounded-2xl border border-border p-4',
     className,
   ]
     .filter(Boolean)
@@ -18,7 +19,10 @@ export function Card({ children, className = '', onPress }: CardProps) {
   if (onPress) {
     return (
       <Pressable
-        onPress={onPress}
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          onPress();
+        }}
         className={baseClassName}
         style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
       >

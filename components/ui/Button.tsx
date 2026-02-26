@@ -5,6 +5,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import * as Haptics from 'expo-haptics';
 
 type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
 type ButtonSize = 'sm' | 'md' | 'lg';
@@ -16,41 +17,45 @@ interface ButtonProps {
   loading?: boolean;
   disabled?: boolean;
   icon?: React.ReactNode;
+  rightIcon?: React.ReactNode;
   fullWidth?: boolean;
   size?: ButtonSize;
 }
 
 const variantStyles: Record<ButtonVariant, { container: string; text: string }> = {
   primary: {
-    container: 'bg-[#c8e000]',
-    text: 'text-[#0c0c0f] font-semibold',
+    container: 'bg-accent',
+    text: 'text-bg font-semibold',
   },
   secondary: {
-    container: 'bg-[#1a1a1f] border border-[#2a2a30]',
+    container: 'bg-surface border border-border',
     text: 'text-white font-semibold',
   },
   ghost: {
     container: 'bg-transparent',
-    text: 'text-[#c8e000] font-semibold',
+    text: 'text-accent font-semibold',
   },
   danger: {
-    container: 'bg-[#ef4444]',
+    container: 'bg-error',
     text: 'text-white font-semibold',
   },
 };
 
-const sizeStyles: Record<ButtonSize, { container: string; text: string }> = {
+const sizeStyles: Record<ButtonSize, { container: string; text: string; height: number }> = {
   sm: {
-    container: 'px-3 py-2 rounded-md',
+    container: 'px-3 rounded-lg',
     text: 'text-sm',
+    height: 36,
   },
   md: {
-    container: 'px-5 py-3 rounded-lg',
+    container: 'px-4 rounded-xl',
     text: 'text-base',
+    height: 48,
   },
   lg: {
-    container: 'px-6 py-4 rounded-xl',
+    container: 'px-6 rounded-xl',
     text: 'text-lg',
+    height: 56,
   },
 };
 
@@ -61,20 +66,30 @@ export function Button({
   loading = false,
   disabled = false,
   icon,
+  rightIcon,
   fullWidth = false,
   size = 'md',
 }: ButtonProps) {
   const isDisabled = disabled || loading;
   const { container: variantContainer, text: variantText } = variantStyles[variant];
-  const { container: sizeContainer, text: sizeText } = sizeStyles[size];
+  const { container: sizeContainer, text: sizeText, height: sizeHeight } = sizeStyles[size];
 
   const activityIndicatorColor =
     variant === 'primary' ? '#0c0c0f' : variant === 'ghost' ? '#c8e000' : '#ffffff';
 
   return (
     <Pressable
-      onPress={onPress}
+      onPress={() => {
+        if (onPress) {
+          const style = variant === 'danger'
+            ? Haptics.ImpactFeedbackStyle.Heavy
+            : Haptics.ImpactFeedbackStyle.Light;
+          Haptics.impactAsync(style);
+          onPress();
+        }
+      }}
       disabled={isDisabled}
+      style={{ height: sizeHeight }}
       className={[
         'flex-row items-center justify-center',
         variantContainer,
@@ -93,6 +108,9 @@ export function Button({
         <View className="mr-2">{icon}</View>
       ) : null}
       <Text className={[variantText, sizeText].join(' ')}>{title}</Text>
+      {rightIcon ? (
+        <View className="ml-2">{rightIcon}</View>
+      ) : null}
     </Pressable>
   );
 }

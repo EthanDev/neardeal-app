@@ -23,6 +23,10 @@ export default function RootLayout() {
     'DMSans-Regular': require('../assets/fonts/DMSans-Regular.ttf'),
     'DMSans-Medium': require('../assets/fonts/DMSans-Medium.ttf'),
     'DMSans-Bold': require('../assets/fonts/DMSans-Bold.ttf'),
+    'GoogleSans-Regular': require('@expo-google-fonts/google-sans/400Regular/GoogleSans_400Regular.ttf'),
+    'GoogleSans-Medium': require('@expo-google-fonts/google-sans/500Medium/GoogleSans_500Medium.ttf'),
+    'GoogleSans-SemiBold': require('@expo-google-fonts/google-sans/600SemiBold/GoogleSans_600SemiBold.ttf'),
+    'GoogleSans-Bold': require('@expo-google-fonts/google-sans/700Bold/GoogleSans_700Bold.ttf'),
   });
 
   useEffect(() => {
@@ -53,7 +57,13 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <Stack screenOptions={{ headerShown: false }} />
+      <Stack
+          screenOptions={{
+            headerShown: false,
+            animation: 'slide_from_right',
+            animationDuration: 200,
+          }}
+        />
       <Toast />
       <StatusBar style="light" />
     </SafeAreaProvider>

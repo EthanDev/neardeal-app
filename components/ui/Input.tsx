@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import {
   KeyboardTypeOptions,
+  NativeSyntheticEvent,
   Text,
   TextInput,
+  TextInputFocusEventData,
   View,
 } from 'react-native';
 
@@ -20,6 +22,8 @@ interface InputProps {
   editable?: boolean;
   multiline?: boolean;
   numberOfLines?: number;
+  onFocus?: (e: NativeSyntheticEvent<TextInputFocusEventData>) => void;
+  onBlur?: (e: NativeSyntheticEvent<TextInputFocusEventData>) => void;
 }
 
 export function Input({
@@ -36,27 +40,48 @@ export function Input({
   editable = true,
   multiline = false,
   numberOfLines,
+  onFocus: onFocusProp,
+  onBlur: onBlurProp,
 }: InputProps) {
   const [focused, setFocused] = useState(false);
 
   const borderColor = error
-    ? 'border-[#ef4444]'
+    ? '#ef4444'
     : focused
-    ? 'border-[#c8e000]'
-    : 'border-[#2a2a30]';
+    ? '#c8e000'
+    : '#2a2a30';
+
+  const containerDynamicStyle = {
+    borderColor,
+    shadowColor: '#c8e000',
+    shadowOffset: { width: 0, height: 0 } as const,
+    shadowOpacity: focused && !error ? 0.3 : 0,
+    shadowRadius: focused && !error ? 6 : 0,
+    ...(multiline ? {} : { height: 48 }),
+  };
+
+  const handleFocus = (e: NativeSyntheticEvent<TextInputFocusEventData>) => {
+    setFocused(true);
+    onFocusProp?.(e);
+  };
+
+  const handleBlur = (e: NativeSyntheticEvent<TextInputFocusEventData>) => {
+    setFocused(false);
+    onBlurProp?.(e);
+  };
 
   return (
     <View className="w-full">
       {label ? (
-        <Text className="text-[#8a8a8f] text-sm mb-1.5 font-medium">{label}</Text>
+        <Text className="text-text-secondary text-sm mb-1.5 font-medium">{label}</Text>
       ) : null}
 
       <View
         className={[
-          'flex-row items-center bg-[#1a1a1f] rounded-lg border px-3',
-          borderColor,
-          multiline ? 'items-start py-3' : 'h-12',
+          'flex-row items-center bg-surface rounded-lg border px-3',
+          multiline ? 'items-start py-3' : '',
         ].join(' ')}
+        style={containerDynamicStyle}
       >
         {leftIcon ? (
           <View className="mr-2">{leftIcon}</View>
@@ -74,9 +99,9 @@ export function Input({
           editable={editable}
           multiline={multiline}
           numberOfLines={numberOfLines}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
-          style={{ color: '#ffffff' }}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
+          style={multiline ? { color: '#ffffff' } : { color: '#ffffff', height: 48, paddingVertical: 0 }}
         />
 
         {rightIcon ? (
@@ -85,7 +110,7 @@ export function Input({
       </View>
 
       {error ? (
-        <Text className="text-[#ef4444] text-xs mt-1">{error}</Text>
+        <Text className="text-error text-xs mt-1">{error}</Text>
       ) : null}
     </View>
   );
