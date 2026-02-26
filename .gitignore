@@ -39,3 +39,9 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# Infrastructure CDK build outputs
+infrastructure/cdk.out*
+
+# Claude Code
+.claude/

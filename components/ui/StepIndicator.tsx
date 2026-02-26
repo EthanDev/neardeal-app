@@ -10,69 +10,36 @@ interface StepIndicatorProps {
 export function StepIndicator({ steps, currentStep, labels = [] }: StepIndicatorProps) {
   return (
     <View className="w-full">
-      <View className="flex-row items-center">
+      {/* Step label and count */}
+      <View className="flex-row items-center justify-between mb-3">
+        <Text className="text-white text-sm font-semibold">
+          {labels[currentStep - 1] || `Step ${currentStep}`}
+        </Text>
+        <Text className="text-[#8a8a8f] text-xs">
+          {currentStep} of {steps}
+        </Text>
+      </View>
+
+      {/* Progress bar segments */}
+      <View className="flex-row gap-1.5">
         {Array.from({ length: steps }, (_, index) => {
           const stepNumber = index + 1;
           const isCompleted = stepNumber < currentStep;
           const isCurrent = stepNumber === currentStep;
-          const isLast = index === steps - 1;
 
           return (
-            <React.Fragment key={stepNumber}>
-              {/* Step circle + label */}
-              <View className="items-center">
-                <View
-                  className={[
-                    'w-7 h-7 rounded-full items-center justify-center border-2',
-                    isCompleted
-                      ? 'bg-[#c8e000] border-[#c8e000]'
-                      : isCurrent
-                      ? 'bg-transparent border-[#c8e000]'
-                      : 'bg-transparent border-[#2a2a30]',
-                  ].join(' ')}
-                >
-                  {isCompleted ? (
-                    <Text style={{ fontSize: 11, fontWeight: 'bold', color: '#0c0c0f' }}>
-                      ✓
-                    </Text>
-                  ) : (
-                    <Text
-                      className={[
-                        'text-xs font-bold',
-                        isCurrent ? 'text-[#c8e000]' : 'text-[#8a8a8f]',
-                      ].join(' ')}
-                    >
-                      {stepNumber}
-                    </Text>
-                  )}
-                </View>
-              </View>
-
-              {/* Label right of circle */}
-              {labels[index] ? (
-                <Text
-                  className={[
-                    'text-xs ml-2 font-medium',
-                    isCompleted || isCurrent ? 'text-[#c8e000]' : 'text-[#8a8a8f]',
-                  ].join(' ')}
-                  numberOfLines={1}
-                >
-                  {labels[index]}
-                </Text>
-              ) : null}
-
-              {/* Connecting line */}
-              {!isLast && (
-                <View className="flex-1 mx-3">
-                  <View
-                    className={[
-                      'h-px',
-                      isCompleted ? 'bg-[#c8e000]' : 'bg-[#2a2a30]',
-                    ].join(' ')}
-                  />
-                </View>
-              )}
-            </React.Fragment>
+            <View
+              key={stepNumber}
+              className={[
+                'flex-1 h-1 rounded-full',
+                isCompleted
+                  ? 'bg-[#c8e000]'
+                  : isCurrent
+                  ? 'bg-[#c8e000]'
+                  : 'bg-[#2a2a30]',
+              ].join(' ')}
+              style={isCurrent ? { opacity: 0.5 } : undefined}
+            />
           );
         })}
       </View>
