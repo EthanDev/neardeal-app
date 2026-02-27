@@ -36,6 +36,7 @@ export default function DealDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [claiming, setClaiming] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [claimStatus, setClaimStatus] = useState<'none' | 'pending' | 'redeemed' | 'expired'>('none');
 
   useEffect(() => {
     if (!dealId) return;
@@ -48,6 +49,12 @@ export default function DealDetailScreen() {
           const d = res.deal || res;
           setDeal(d as Deal);
           setSaved(!!d.isSaved);
+          if (d.hasClaimed) {
+            const claimInfo = (d as any).claimStatus;
+            if (claimInfo === 'redeemed') setClaimStatus('redeemed');
+            else if (claimInfo === 'expired') setClaimStatus('expired');
+            else setClaimStatus('pending');
+          }
         }
       } catch (err: any) {
         if (!cancelled) {
@@ -69,8 +76,9 @@ export default function DealDetailScreen() {
     if (!deal || claiming) return;
     setClaiming(true);
     try {
-      const res = await api.post<{ claim: { claimId: string; qrToken: string } }>('/api/claims', { dealId: deal.dealId });
+      const res = await api.post<{ claim: { claimId: string; qrToken: string; createdAt?: string } }>('/api/claims', { dealId: deal.dealId });
       const claim = res.claim || res;
+      setClaimStatus('pending');
       router.push({
         pathname: '/(tabs)/nearby/qr',
         params: {
@@ -81,6 +89,8 @@ export default function DealDetailScreen() {
           discount: `${deal.discountValue}% OFF`,
           dealId: deal.dealId,
           businessId: deal.businessId,
+          expiresAt: deal.expiresAt,
+          createdAt: claim.createdAt || '',
         },
       });
     } catch (err: any) {
@@ -221,20 +231,45 @@ export default function DealDetailScreen() {
           <Pressable onPress={openNavigation} className="rounded-xl items-center justify-center ml-2" style={{ width: 52, height: 58, backgroundColor: '#222228' }}>
             <NavigationIcon size={22} color="#c8e000" />
           </Pressable>
-          <Pressable
-            onPress={handleClaim}
-            disabled={claiming || !!deal.hasClaimed}
-            className="flex-1 rounded-xl items-center justify-center ml-3"
-            style={{ backgroundColor: deal.hasClaimed ? '#555' : claiming ? '#a0b800' : '#c8e000', height: 58, opacity: claiming ? 0.7 : 1 }}
-          >
-            {claiming ? (
-              <ActivityIndicator size="small" color="#111" />
-            ) : (
-              <Text style={{ color: '#111', fontSize: 16, fontFamily: 'GoogleSans-Bold' }}>
-                {deal.hasClaimed ? 'Already Claimed' : t('consumer.detail.claim', 'Claim Deal')}
-              </Text>
-            )}
-          </Pressable>
+          {claimStatus === 'none' && (
+            <Pressable
+              onPress={handleClaim}
+              disabled={claiming}
+              className="flex-1 rounded-xl items-center justify-center ml-3"
+              style={{ backgroundColor: claiming ? '#a0b800' : '#c8e000', height: 58, opacity: claiming ? 0.7 : 1 }}
+            >
+              {claiming ? (
+                <ActivityIndicator size="small" color="#111" />
+              ) : (
+                <Text style={{ color: '#111', fontSize: 16, fontFamily: 'GoogleSans-Bold' }}>
+                  {t('consumer.detail.claim', 'Claim Deal')}
+                </Text>
+              )}
+            </Pressable>
+          )}
+          {claimStatus === 'pending' && (
+            <Pressable
+              onPress={() => router.push({
+                pathname: '/(tabs)/nearby/qr',
+                params: { dealId: deal.dealId, dealTitle: deal.title, business: deal.title, discount: `${deal.discountValue}% OFF`, businessId: deal.businessId, claimId: (deal as any).claimId || '', qrToken: (deal as any).qrToken || '', expiresAt: deal.expiresAt },
+              })}
+              className="flex-1 rounded-xl items-center justify-center ml-3"
+              style={{ backgroundColor: '#c8e000', height: 58 }}
+            >
+              <Text style={{ color: '#111', fontSize: 16, fontFamily: 'GoogleSans-Bold' }}>Show QR Code</Text>
+            </Pressable>
+          )}
+          {claimStatus === 'redeemed' && (
+            <View className="flex-1 rounded-xl items-center justify-center ml-3 flex-row" style={{ backgroundColor: '#18a056', height: 58 }}>
+              <Text style={{ color: '#fff', fontSize: 18, marginRight: 6 }}>✓</Text>
+              <Text style={{ color: '#fff', fontSize: 16, fontFamily: 'GoogleSans-Bold' }}>Redeemed</Text>
+            </View>
+          )}
+          {claimStatus === 'expired' && (
+            <View className="flex-1 rounded-xl items-center justify-center ml-3" style={{ backgroundColor: '#333', height: 58 }}>
+              <Text style={{ color: '#666', fontSize: 16, fontFamily: 'GoogleSans-Bold' }}>Expired</Text>
+            </View>
+          )}
         </View>
       </View>
     </SafeAreaView>

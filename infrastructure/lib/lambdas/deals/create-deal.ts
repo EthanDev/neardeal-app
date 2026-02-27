@@ -120,6 +120,7 @@ export const handler = async (event: APIGatewayProxyEventV2WithJWTAuthorizer): P
       isFlash: body.isFlash || false,
       flashExpiresAt: body.flashExpiresAt || '',
       expiresAt,
+      ttl: Math.floor(new Date(expiresAt).getTime() / 1000),
       createdAt: now,
       updatedAt: now,
     };

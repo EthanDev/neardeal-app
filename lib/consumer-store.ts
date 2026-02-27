@@ -40,7 +40,7 @@ export interface ClaimedDeal {
   color: string;
   claimedAt: string;
   distance: string;
-  status: 'redeemed' | 'claimed' | 'expired';
+  status: 'pending' | 'redeemed' | 'claimed' | 'expired';
   saved: number;
 }
 
@@ -176,7 +176,7 @@ export const useConsumerStore = create<ConsumerState>((set, get) => ({
       const claim = res.claim || (res as any);
       set((state) => ({
         claimedDeals: [
-          { id: claim.claimId, claimId: claim.claimId, business: deal.business, dealName: deal.description, discount: deal.discount, color: deal.color, claimedAt: 'Just now', distance: deal.distance, status: 'claimed' as const, saved: 0 },
+          { id: claim.claimId, claimId: claim.claimId, business: deal.business, dealName: deal.description, discount: deal.discount, color: deal.color, claimedAt: 'Just now', distance: deal.distance, status: 'pending' as const, saved: 0 },
           ...state.claimedDeals,
         ],
       }));

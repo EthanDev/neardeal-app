@@ -141,6 +141,9 @@ export class ApiStack extends cdk.Stack {
     });
     props.qrHmacSecret.grantRead(createClaimFn);
 
+    // 5b. DELETE /api/claims/{claimId} — cancelClaim (consumer)
+    const cancelClaimFn = createLambda('CancelClaim', path.join(lambdasDir, 'claims', 'cancel-claim.ts'));
+
     // 6. POST /api/claims/{claimId}/redeem — redeemClaim (business)
     const redeemClaimFn = createLambda('RedeemClaim', path.join(lambdasDir, 'claims', 'redeem-claim.ts'), {
       QR_HMAC_SECRET_ARN: props.qrHmacSecret.secretArn,
@@ -265,6 +268,13 @@ export class ApiStack extends cdk.Stack {
       path: '/api/claims',
       methods: [HttpMethod.POST],
       integration: new HttpLambdaIntegration('CreateClaimIntegration', createClaimFn),
+      authorizer: consumerAuthorizer,
+    });
+
+    this.httpApi.addRoutes({
+      path: '/api/claims/{claimId}',
+      methods: [HttpMethod.DELETE],
+      integration: new HttpLambdaIntegration('CancelClaimIntegration', cancelClaimFn),
       authorizer: consumerAuthorizer,
     });
 

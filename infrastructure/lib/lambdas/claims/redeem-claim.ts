@@ -1,6 +1,6 @@
 import { APIGatewayProxyEventV2WithJWTAuthorizer, APIGatewayProxyResultV2 } from 'aws-lambda';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, QueryCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
+import { DynamoDBDocumentClient, QueryCommand, UpdateCommand, GetCommand, PutCommand } from '@aws-sdk/lib-dynamodb';
 import { GetSecretValueCommand, SecretsManagerClient } from '@aws-sdk/client-secrets-manager';
 import { createHmac } from 'crypto';
 import Redis from 'ioredis';
@@ -77,7 +77,29 @@ export const handler = async (event: APIGatewayProxyEventV2WithJWTAuthorizer): P
       await r.del(`redeem:${claimId}`);
       return respond(403, { message: 'This claim does not belong to your business' });
     }
-    if (claim.status !== 'claimed') return respond(409, { message: `Claim is already ${claim.status}` });
+    if (claim.status !== 'pending') {
+      await r.del(`redeem:${claimId}`);
+      return respond(409, { message: `Claim is already ${claim.status}` });
+    }
+
+    // Validate deal is still active
+    const dealResult = await ddb.send(new GetCommand({
+      TableName: TABLE_NAME,
+      Key: { PK: `DEAL#${claim.dealId}`, SK: 'META' },
+    }));
+    const deal = dealResult.Item;
+    if (!deal || deal.status === 'deleted') {
+      await r.del(`redeem:${claimId}`);
+      return respond(400, { message: 'Deal has been removed' });
+    }
+    if (deal.status !== 'active') {
+      await r.del(`redeem:${claimId}`);
+      return respond(400, { message: 'Deal is no longer active' });
+    }
+    if (new Date(deal.expiresAt as string) < new Date()) {
+      await r.del(`redeem:${claimId}`);
+      return respond(410, { message: 'Deal has expired' });
+    }
 
     // Verify HMAC
     const secret = await getHmacSecret();
@@ -92,14 +114,14 @@ export const handler = async (event: APIGatewayProxyEventV2WithJWTAuthorizer): P
     const now = new Date().toISOString();
     const today = now.split('T')[0];
 
-    // Update claim status to redeemed
+    // Update claim status to redeemed and set claimedAt
     await ddb.send(new UpdateCommand({
       TableName: TABLE_NAME,
       Key: { PK: claim.PK, SK: claim.SK },
-      UpdateExpression: 'SET #st = :redeemed, redeemedAt = :now',
-      ConditionExpression: '#st = :claimed',
+      UpdateExpression: 'SET #st = :redeemed, redeemedAt = :now, claimedAt = :now',
+      ConditionExpression: '#st = :pending',
       ExpressionAttributeNames: { '#st': 'status' },
-      ExpressionAttributeValues: { ':redeemed': 'redeemed', ':now': now, ':claimed': 'claimed' },
+      ExpressionAttributeValues: { ':redeemed': 'redeemed', ':now': now, ':pending': 'pending' },
     }));
 
     // Also update the user history claim record
@@ -107,11 +129,41 @@ export const handler = async (event: APIGatewayProxyEventV2WithJWTAuthorizer): P
       await ddb.send(new UpdateCommand({
         TableName: TABLE_NAME,
         Key: { PK: `USER#${claim.userId}`, SK: `CLAIM#${claimId}` },
-        UpdateExpression: 'SET #st = :redeemed, redeemedAt = :now',
+        UpdateExpression: 'SET #st = :redeemed, redeemedAt = :now, claimedAt = :now',
         ExpressionAttributeNames: { '#st': 'status' },
         ExpressionAttributeValues: { ':redeemed': 'redeemed', ':now': now },
       })).catch(() => {}); // Non-critical
     }
+
+    // Increment deal's currentClaims counter (only now that business confirmed)
+    await ddb.send(new UpdateCommand({
+      TableName: TABLE_NAME,
+      Key: { PK: `DEAL#${claim.dealId}`, SK: 'META' },
+      UpdateExpression: 'SET currentClaims = if_not_exists(currentClaims, :zero) + :one, pendingClaims = if_not_exists(pendingClaims, :zero) - :one',
+      ExpressionAttributeValues: { ':zero': 0, ':one': 1 },
+    })).catch((err) => console.error('Failed to increment deal claims', err));
+
+    // Push notification for consumer
+    if (claim.userId) {
+      const notifId = `NOTIF#${now}#${claimId}`;
+      await ddb.send(new PutCommand({
+        TableName: TABLE_NAME,
+        Item: {
+          PK: `USER#${claim.userId}`,
+          SK: notifId,
+          type: 'CLAIM_REDEEMED',
+          title: 'Deal Redeemed!',
+          body: `Your deal has been redeemed successfully`,
+          claimId,
+          dealId: claim.dealId,
+          createdAt: now,
+          read: false,
+        },
+      })).catch(() => {});
+    }
+
+    // Invalidate Redis deal cache
+    await r.del(`deal:${claim.dealId}`).catch(() => {});
 
     // Increment business daily counter
     await r.incr(`biz:claims:${businessId}:${today}`);
@@ -122,7 +174,7 @@ export const handler = async (event: APIGatewayProxyEventV2WithJWTAuthorizer): P
     });
   } catch (err: unknown) {
     if ((err as { name?: string }).name === 'ConditionalCheckFailedException') {
-      return respond(409, { message: 'Claim was already redeemed' });
+      return respond(409, { message: 'Claim is no longer pending' });
     }
     console.error('redeemClaim error', err);
     return respond(500, { message: 'Internal server error' });

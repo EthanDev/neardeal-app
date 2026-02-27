@@ -67,7 +67,9 @@ export const handler = async (event: APIGatewayProxyEventV2WithJWTAuthorizer): P
     const hmacSignature = createHmac('sha256', secret).update(qrPayload).digest('base64');
     const qrToken = `${claimId}:${hmacSignature}`;
 
-    // Atomic transaction: create claim + user history + increment deal counter
+    // Create claim with 'pending' status — NOT yet counted towards deal claims.
+    // The claim only becomes 'claimed' when the business scans the QR code
+    // and the redeem-claim endpoint is called.
     await ddb.send(new TransactWriteCommand({
       TransactItems: [
         {
@@ -86,9 +88,10 @@ export const handler = async (event: APIGatewayProxyEventV2WithJWTAuthorizer): P
               dealTitle: deal.title,
               dealDiscount: (deal.originalPrice as number) - (deal.dealPrice as number),
               qrToken,
-              status: 'claimed',
-              claimedAt: now,
+              status: 'pending',
+              createdAt: now,
               expiresAt: deal.expiresAt,
+              ttl: Math.floor(new Date(deal.expiresAt as string).getTime() / 1000),
             },
             ConditionExpression: 'attribute_not_exists(PK)',
           },
@@ -105,8 +108,9 @@ export const handler = async (event: APIGatewayProxyEventV2WithJWTAuthorizer): P
               dealId,
               dealTitle: deal.title,
               dealDiscount: (deal.originalPrice as number) - (deal.dealPrice as number),
-              status: 'claimed',
-              claimedAt: now,
+              status: 'pending',
+              createdAt: now,
+              ttl: Math.floor(new Date(deal.expiresAt as string).getTime() / 1000),
             },
           },
         },
@@ -114,20 +118,17 @@ export const handler = async (event: APIGatewayProxyEventV2WithJWTAuthorizer): P
           Update: {
             TableName: TABLE_NAME,
             Key: { PK: `DEAL#${dealId}`, SK: 'META' },
-            UpdateExpression: 'SET currentClaims = currentClaims + :one, updatedAt = :now',
-            ConditionExpression: 'currentClaims < maxClaims',
-            ExpressionAttributeValues: { ':one': 1, ':now': now },
+            UpdateExpression: 'SET pendingClaims = if_not_exists(pendingClaims, :zero) + :one',
+            ConditionExpression: '(if_not_exists(currentClaims, :zero) + if_not_exists(pendingClaims, :zero)) < maxClaims AND #st = :active',
+            ExpressionAttributeNames: { '#st': 'status' },
+            ExpressionAttributeValues: { ':zero': 0, ':one': 1, ':active': 'active' },
           },
         },
       ],
     }));
 
-    // Invalidate deal cache
-    const r = getRedis();
-    await r.del(`deal:${dealId}`);
-
     return respond(201, {
-      claim: { claimId, dealId, qrToken, status: 'claimed', claimedAt: now },
+      claim: { claimId, dealId, qrToken, status: 'pending', createdAt: now },
     });
   } catch (err: unknown) {
     if ((err as { name?: string }).name === 'TransactionCanceledException') {

@@ -10,6 +10,7 @@ import {
   Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import {
   getCategoryIcon,
@@ -34,10 +35,15 @@ interface ClaimedDeal {
   color: string;
   date: string;
   distance: string;
-  status: 'redeemed' | 'claimed' | 'expired';
+  status: 'redeemed' | 'claimed' | 'expired' | 'pending';
   saved: number;
   section: string;
   businessLogo?: string;
+  claimId: string;
+  dealName: string;
+  qrToken?: string;
+  dealId?: string;
+  businessId?: string;
 }
 
 interface SavedDeal {
@@ -87,6 +93,9 @@ interface RawStreakResponse {
     dealDiscount?: number;
     status: string;
     claimedAt: string;
+    qrToken?: string;
+    businessId?: string;
+    businessName?: string;
   }>;
   totalClaims?: number;
 }
@@ -109,6 +118,7 @@ type Tab = 'claimed' | 'saved' | 'passport';
 
 export default function MyDealsScreen() {
   const { t } = useTranslation();
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<Tab>('claimed');
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
@@ -196,6 +206,11 @@ export default function MyDealsScreen() {
           saved: c.dealDiscount ?? 0,
           section,
           businessLogo: TITLE_TO_LOGO[dealTitle],
+          claimId: c.claimId,
+          dealName: dealTitle,
+          qrToken: (c as any).qrToken,
+          dealId: c.dealId,
+          businessId: (c as any).businessId,
         };
       });
       setClaimedDeals(claimedMapped);
@@ -254,11 +269,12 @@ export default function MyDealsScreen() {
   const statusLabel = (s: string) => {
     if (s === 'redeemed') return t('consumer.myDeals.redeemed');
     if (s === 'claimed') return t('consumer.myDeals.notRedeemed');
+    if (s === 'pending') return t('consumer.myDeals.pending', 'Pending');
     return t('consumer.myDeals.expired');
   };
 
   const statusColor = (s: string) =>
-    s === 'redeemed' ? '#18a056' : s === 'claimed' ? '#d93025' : '#666';
+    s === 'redeemed' ? '#18a056' : s === 'claimed' ? '#d93025' : s === 'pending' ? '#f59e0b' : '#666';
 
   // ── Sections for claimed deals ──
 
@@ -386,7 +402,7 @@ export default function MyDealsScreen() {
 
   function ClaimedCard({ deal }: { deal: ClaimedDeal }) {
     const expanded = expandedId === deal.id;
-    const isExpired = deal.status === 'expired';
+    const isPast = deal.status === 'expired' || deal.status === 'redeemed';
     const logo = getBusinessLogo(deal.businessLogo);
 
     return (
@@ -458,12 +474,32 @@ export default function MyDealsScreen() {
             <Text className="text-[14px] font-bold text-[#18a056]">
               -{deal.saved} RON {t('consumer.myDeals.saved')}
             </Text>
-            {isExpired ? (
+            {deal.status === 'redeemed' ? (
+              <Text className="text-[13px] font-semibold" style={{ color: '#18a056' }}>
+                {t('consumer.myDeals.redeemed')}
+              </Text>
+            ) : isPast ? (
               <Text className="text-[13px] font-semibold text-[#666]">
                 {t('consumer.myDeals.expired')}
               </Text>
             ) : (
-              <TouchableOpacity className="bg-[#c8e000] px-4 py-2 rounded-xl">
+              <TouchableOpacity
+                className="bg-[#c8e000] px-4 py-2 rounded-xl"
+                onPress={() => {
+                  router.push({
+                    pathname: '/(tabs)/nearby/qr',
+                    params: {
+                      claimId: deal.claimId,
+                      qrToken: deal.qrToken || '',
+                      dealTitle: deal.dealName,
+                      business: deal.business,
+                      discount: String(deal.discount),
+                      dealId: deal.dealId || '',
+                      businessId: deal.businessId || '',
+                    },
+                  });
+                }}
+              >
                 <Text className="text-[#111] text-[13px] font-semibold">
                   {t('consumer.myDeals.viewQr')}
                 </Text>
