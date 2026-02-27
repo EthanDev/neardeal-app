@@ -28,6 +28,7 @@ export interface NearbyDeal {
   imageUrl?: string;
   isFlash?: boolean;
   status?: string;
+  businessLogo?: string;
 }
 
 export interface ClaimedDeal {
@@ -135,6 +136,7 @@ function mapApiDeal(d: any): NearbyDeal {
     imageUrl: d.imageUrl,
     isFlash: d.isFlash,
     status: d.status,
+    businessLogo: d.businessLogo,
   };
 }
 
@@ -196,7 +198,7 @@ export const useConsumerStore = create<ConsumerState>((set, get) => ({
     set({ isLoadingDeals: true, dealsError: null });
     try {
       const { api } = await import('./api');
-      const params: Record<string, string> = { lat: String(lat), lng: String(lng), radius: '500', limit: '20' };
+      const params: Record<string, string> = { lat: String(lat), lng: String(lng), radius: '5000', limit: '50' };
       if (category) params.category = category;
       const queryStr = new URLSearchParams(params).toString();
       const res = await api.get<{ deals: any[]; total: number }>(`/api/deals/nearby?${queryStr}`);

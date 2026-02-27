@@ -27,8 +27,9 @@ import {
   ShirtIcon,
   getCategoryIcon,
 } from '@/components/icons/CategoryIcons';
+import { getBusinessLogo } from '@/lib/businessLogos';
 
-const BUCHAREST = { latitude: 44.4268, longitude: 26.1025, latitudeDelta: 0.015, longitudeDelta: 0.015 };
+const BUCHAREST = { latitude: 44.4200, longitude: 26.1020, latitudeDelta: 0.055, longitudeDelta: 0.055 };
 
 const FILTERS = [
   { key: 'all', labelKey: 'consumer.nearby.filterAll', icon: null },
@@ -41,7 +42,7 @@ const FILTERS = [
 // Map filter keys to matching categoryKeys
 const FILTER_TO_CATEGORIES: Record<string, string[]> = {
   food: ['coffee', 'restaurant', 'bakery', 'food', 'drinks'],
-  grocery: ['grocery', 'shopping'],
+  grocery: ['grocery', 'shopping', 'entertainment'],
   fitness: ['fitness', 'gym', 'health'],
   fashion: ['fashion', 'clothing', 'beauty'],
 };
@@ -234,17 +235,51 @@ export default function NearbyScreen() {
               initialRegion={BUCHAREST}
               showsUserLocation
             >
-              {filteredDeals.map((deal) => (
-                <Marker
-                  key={deal.id}
-                  coordinate={{ latitude: deal.lat, longitude: deal.lng }}
-                >
-                  <Callout onPress={() => openDeal(deal.id)}>
-                    <Text style={{ fontFamily: 'GoogleSans-Bold' }}>{deal.business}</Text>
-                    <Text>{deal.discount}% off</Text>
-                  </Callout>
-                </Marker>
-              ))}
+              {filteredDeals.map((deal) => {
+                const logo = getBusinessLogo(deal.businessLogo);
+                return (
+                  <Marker
+                    key={deal.id}
+                    coordinate={{ latitude: deal.lat, longitude: deal.lng }}
+                    title={deal.business}
+                    description={`${deal.discount}% off`}
+                    onCalloutPress={() => openDeal(deal.id)}
+                  >
+                    <View style={{ alignItems: 'center' }}>
+                      {logo ? (
+                        <View style={{
+                          width: 40, height: 40, borderRadius: 10,
+                          overflow: 'hidden',
+                          borderWidth: 2, borderColor: '#c8e000',
+                          shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 4, shadowOffset: { width: 0, height: 2 },
+                        }}>
+                          <Image source={logo} style={{ width: 36, height: 36 }} />
+                        </View>
+                      ) : (
+                        <View style={{
+                          width: 32, height: 32, borderRadius: 16,
+                          backgroundColor: '#c8e000',
+                          alignItems: 'center', justifyContent: 'center',
+                          borderWidth: 2, borderColor: '#fff',
+                          shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 4, shadowOffset: { width: 0, height: 2 },
+                        }}>
+                          <Text style={{ fontSize: 12, fontWeight: 'bold', color: '#111' }}>
+                            {deal.discount}%
+                          </Text>
+                        </View>
+                      )}
+                      {/* Pin triangle */}
+                      <View style={{
+                        width: 0, height: 0,
+                        borderLeftWidth: 6, borderRightWidth: 6, borderTopWidth: 8,
+                        borderLeftColor: 'transparent', borderRightColor: 'transparent',
+                        borderTopColor: '#c8e000',
+                        marginTop: -1,
+                      }} />
+                    </View>
+                  </Marker>
+                );
+              })}
             </MapView>
             <Pressable onPress={() => setMapExpanded(!mapExpanded)} className="absolute bottom-3 right-3 bg-[#1a1a1f] px-3 py-1.5 rounded-full">
               <Text className="text-[12px] font-semibold text-[#fff]">{mapExpanded ? t('consumer.nearby.collapseMap', 'Collapse map') : t('consumer.nearby.expandMap')}</Text>
@@ -316,36 +351,49 @@ export default function NearbyScreen() {
               </Pressable>
             </View>
 
-            {filteredDeals.map((deal) => (
-              <Pressable
-                key={deal.id}
-                onPress={() => openDeal(deal.id)}
-                className="bg-[#1a1a1f] rounded-xl mb-3 flex-row overflow-hidden"
-              >
-                <View style={{ backgroundColor: deal.color, width: 5 }} />
-                <View className="flex-1 p-4">
-                  <View className="flex-row items-center mb-1">
-                    {getCategoryIcon(deal.categoryKey || '', 13, '#8a8a8f')}
-                    <Text className="text-[11px] font-semibold text-[#8a8a8f] ml-1">
-                      {deal.category}
-                    </Text>
-                  </View>
-                  <View className="flex-row items-center justify-between mb-1">
-                    <Text className="text-[15px] font-bold text-[#fff]">{deal.business || deal.title}</Text>
-                    <View className="bg-[#c8e000] px-2 py-0.5 rounded-md">
-                      <Text className="text-[12px] font-bold text-[#111]">-{deal.discount}%</Text>
+            {filteredDeals.map((deal) => {
+              const logo = getBusinessLogo(deal.businessLogo);
+              return (
+                <Pressable
+                  key={deal.id}
+                  onPress={() => openDeal(deal.id)}
+                  className="bg-[#1a1a1f] rounded-xl mb-3 flex-row overflow-hidden"
+                >
+                  <View className="flex-1 p-4 flex-row">
+                    {/* Business logo */}
+                    {logo ? (
+                      <Image
+                        source={logo}
+                        style={{ width: 48, height: 48, borderRadius: 12 }}
+                        className="mr-3"
+                      />
+                    ) : (
+                      <View className="w-[48px] h-[48px] rounded-xl bg-[#2a2a30] items-center justify-center mr-3">
+                        {getCategoryIcon(deal.categoryKey || '', 22, '#8a8a8f')}
+                      </View>
+                    )}
+
+                    {/* Deal info */}
+                    <View className="flex-1">
+                      <View className="flex-row items-center justify-between mb-0.5">
+                        <Text className="text-[15px] font-bold text-[#fff] flex-1 mr-2">{deal.business || deal.title}</Text>
+                        <View className="bg-[#c8e000] px-2 py-0.5 rounded-md">
+                          <Text className="text-[12px] font-bold text-[#111]">-{deal.discount}%</Text>
+                        </View>
+                      </View>
+                      <Text className="text-[13px] text-[#8a8a8f] mb-1.5" numberOfLines={2}>{deal.description}</Text>
+                      <View className="flex-row items-center gap-3">
+                        <Text className="text-[11px] text-[#666]">{deal.category}</Text>
+                        <Text className="text-[11px] text-[#666]">{deal.distance}</Text>
+                        <Text className={`text-[11px] font-medium ${deal.urgent ? 'text-red-500' : 'text-[#666]'}`}>
+                          {deal.timeLeft}
+                        </Text>
+                      </View>
                     </View>
                   </View>
-                  <Text className="text-[13px] text-[#8a8a8f] mb-2">{deal.description}</Text>
-                  <View className="flex-row items-center gap-3">
-                    <Text className="text-[12px] text-[#666]">{deal.distance}</Text>
-                    <Text className={`text-[12px] font-medium ${deal.urgent ? 'text-red-500' : 'text-[#666]'}`}>
-                      {deal.timeLeft}
-                    </Text>
-                  </View>
-                </View>
-              </Pressable>
-            ))}
+                </Pressable>
+              );
+            })}
           </View>
         )}
       </ScrollView>

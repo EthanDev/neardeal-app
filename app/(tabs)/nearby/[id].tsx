@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, Pressable, ScrollView, Linking, Platform, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, Pressable, ScrollView, Linking, Platform, ActivityIndicator, Alert, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import MapView, { Marker } from 'react-native-maps';
 import { getCategoryIcon, HeartIcon, ClockIcon, ChevronLeftIcon, NavigationIcon } from '@/components/icons/CategoryIcons';
 import { api } from '@/lib/api';
+import { getBusinessLogo } from '@/lib/businessLogos';
 
 interface Deal {
   dealId: string;
@@ -149,11 +150,18 @@ export default function DealDetailScreen() {
             </Pressable>
 
             <View className="flex-row items-center mt-5">
-              <View className="rounded-2xl items-center justify-center" style={{ width: 54, height: 54, backgroundColor: '#222228' }}>
-                {getCategoryIcon(cat, 26, '#8a8a8f')}
-              </View>
-              <View className="ml-3">
-                <Text style={{ fontSize: 19, fontFamily: 'GoogleSans-Bold', color: '#ffffff' }}>{deal.title}</Text>
+              {(() => {
+                const logo = getBusinessLogo((deal as any).businessLogo);
+                return logo ? (
+                  <Image source={logo} style={{ width: 54, height: 54, borderRadius: 14 }} />
+                ) : (
+                  <View className="rounded-2xl items-center justify-center" style={{ width: 54, height: 54, backgroundColor: '#222228' }}>
+                    {getCategoryIcon(cat, 26, '#8a8a8f')}
+                  </View>
+                );
+              })()}
+              <View className="ml-3 flex-1">
+                <Text style={{ fontSize: 19, fontFamily: 'GoogleSans-Bold', color: '#ffffff' }}>{(deal as any).businessName || deal.title}</Text>
                 <Text style={{ fontSize: 12, color: '#8a8a8f', marginTop: 2 }}>{deal.category}</Text>
               </View>
             </View>

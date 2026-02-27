@@ -14,7 +14,7 @@ export const BACKGROUND_LOCATION_TASK = 'neardeal-background-location';
 
 TaskManager.defineTask(BACKGROUND_LOCATION_TASK, async ({ data, error }) => {
   if (error) {
-    console.error('[LocationService] Background task error:', error.message);
+    console.warn('[LocationService] Background task error:', error.message);
     return;
   }
 
@@ -50,12 +50,16 @@ export async function requestLocationPermissions(): Promise<{
     return { foreground: false, background: false };
   }
 
-  // Then request background
-  const { status: bgStatus } = await Location.requestBackgroundPermissionsAsync();
-  return {
-    foreground: true,
-    background: bgStatus === 'granted',
-  };
+  // Then request background (may fail in Expo Go / simulator)
+  try {
+    const { status: bgStatus } = await Location.requestBackgroundPermissionsAsync();
+    return {
+      foreground: true,
+      background: bgStatus === 'granted',
+    };
+  } catch {
+    return { foreground: true, background: false };
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -63,29 +67,34 @@ export async function requestLocationPermissions(): Promise<{
 // ---------------------------------------------------------------------------
 
 export async function startBackgroundLocation(): Promise<boolean> {
-  const hasStarted = await Location.hasStartedLocationUpdatesAsync(BACKGROUND_LOCATION_TASK).catch(() => false);
-  if (hasStarted) {
-    return true; // Already running
-  }
+  try {
+    const hasStarted = await Location.hasStartedLocationUpdatesAsync(BACKGROUND_LOCATION_TASK).catch(() => false);
+    if (hasStarted) {
+      return true; // Already running
+    }
 
-  const { foreground, background } = await requestLocationPermissions();
-  if (!foreground || !background) {
+    const { foreground, background } = await requestLocationPermissions();
+    if (!foreground || !background) {
+      return false;
+    }
+
+    await Location.startLocationUpdatesAsync(BACKGROUND_LOCATION_TASK, {
+      accuracy: Location.Accuracy.Balanced,
+      distanceInterval: 200, // 200 meters
+      deferredUpdatesInterval: 60_000, // At most once per minute
+      showsBackgroundLocationIndicator: true,
+      foregroundService: {
+        notificationTitle: 'NearDeal',
+        notificationBody: 'Finding deals near you',
+        notificationColor: '#c8e000',
+      },
+    });
+
+    return true;
+  } catch (err) {
+    console.warn('[LocationService] Failed to start background location:', err);
     return false;
   }
-
-  await Location.startLocationUpdatesAsync(BACKGROUND_LOCATION_TASK, {
-    accuracy: Location.Accuracy.Balanced,
-    distanceInterval: 200, // 200 meters
-    deferredUpdatesInterval: 60_000, // At most once per minute
-    showsBackgroundLocationIndicator: true,
-    foregroundService: {
-      notificationTitle: 'NearDeal',
-      notificationBody: 'Finding deals near you',
-      notificationColor: '#c8e000',
-    },
-  });
-
-  return true;
 }
 
 export async function stopBackgroundLocation(): Promise<void> {

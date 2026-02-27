@@ -7,6 +7,7 @@ import {
   Pressable,
   ActivityIndicator,
   RefreshControl,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
@@ -21,6 +22,7 @@ import {
   CheckIcon,
 } from '@/components/icons/CategoryIcons';
 import { api } from '@/lib/api';
+import { getBusinessLogo } from '@/lib/businessLogos';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -35,6 +37,7 @@ interface ClaimedDeal {
   status: 'redeemed' | 'claimed' | 'expired';
   saved: number;
   section: string;
+  businessLogo?: string;
 }
 
 interface SavedDeal {
@@ -45,6 +48,7 @@ interface SavedDeal {
   distance: string;
   categoryKey: string;
   color: string;
+  businessLogo?: string;
 }
 
 interface Badge {
@@ -54,19 +58,37 @@ interface Badge {
   unlocked: boolean;
 }
 
-interface SavesResponse {
-  savedDeals: SavedDeal[];
+// Raw API response types (backend shape)
+interface RawSavesResponse {
+  saves: Array<{
+    dealId: string;
+    savedAt: string;
+    deal: {
+      dealId: string;
+      title: string;
+      description?: string;
+      businessName?: string;
+      discountValue?: number;
+      category?: string;
+      latitude?: number;
+      longitude?: number;
+    } | null;
+  }>;
 }
 
-interface StreakResponse {
-  claimedDeals: ClaimedDeal[];
-  stamps: (string | null)[];
-  badges: Badge[];
-  summary: {
-    claimed: number;
-    ronSaved: number;
-    avgDeal: number;
-  };
+interface RawStreakResponse {
+  currentStreak: number;
+  longestStreak: number;
+  weekTracker: boolean[];
+  recentClaims: Array<{
+    claimId: string;
+    dealId: string;
+    dealTitle: string;
+    dealDiscount?: number;
+    status: string;
+    claimedAt: string;
+  }>;
+  totalClaims?: number;
 }
 
 // ── Icon map for badges ──────────────────────────────────────────────────────
@@ -104,15 +126,100 @@ export default function MyDealsScreen() {
   const fetchData = useCallback(async () => {
     try {
       const [savesRes, streakRes] = await Promise.all([
-        api.get<SavesResponse>('/api/saves'),
-        api.get<StreakResponse>('/api/consumer/streak'),
+        api.get<RawSavesResponse>('/api/saves'),
+        api.get<RawStreakResponse>('/api/consumer/streak'),
       ]);
 
-      setSavedDeals(savesRes.savedDeals ?? []);
-      setClaimedDeals(streakRes.claimedDeals ?? []);
-      setStamps(streakRes.stamps ?? []);
-      setBadges(streakRes.badges ?? []);
-      setSummary(streakRes.summary ?? { claimed: 0, ronSaved: 0, avgDeal: 0 });
+      // Map saves to UI shape
+      const CATEGORY_COLORS: Record<string, string> = {
+        food: '#ef4444', drinks: '#f59e0b', coffee: '#8B4513',
+        shopping: '#3b82f6', beauty: '#ec4899', fitness: '#22c55e',
+        entertainment: '#8b5cf6', services: '#06b6d4', default: '#8fa200',
+      };
+      // Map deal titles to business logos for claimed deals
+      const TITLE_TO_LOGO: Record<string, string> = {
+        '50% Off Specialty Latte': 'origo',
+        '2-for-1 Craft Beers': 'shift',
+        '30% Off Traditional Lunch': 'manuc',
+        '25% Off Weekend Brunch': 'artist',
+        'Free Bouquet Upgrade': 'floraria',
+        '40% Off 60-Min Massage': 'zen',
+        'Buy 1 Get 1 Fresh Pastry': 'paine',
+      };
+      const mapped: SavedDeal[] = (savesRes.saves ?? [])
+        .filter((s) => s.deal)
+        .map((s) => {
+          const d = s.deal!;
+          const cat = (d.category ?? 'default').toLowerCase();
+          return {
+            id: d.dealId,
+            business: d.businessName ?? d.title,
+            desc: d.description ?? d.title,
+            discount: d.discountValue ? `-${d.discountValue}%` : 'Deal',
+            distance: '',
+            categoryKey: cat,
+            color: CATEGORY_COLORS[cat] ?? CATEGORY_COLORS.default,
+            businessLogo: (d as any).businessLogo,
+          };
+        });
+      setSavedDeals(mapped);
+
+      // Map claims to UI shape
+      const now = new Date();
+      const todayStr = now.toISOString().split('T')[0];
+      const yesterday = new Date(now);
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+      // Deduplicate claims by claimId
+      const seen = new Set<string>();
+      const uniqueClaims = (streakRes.recentClaims ?? []).filter((c) => {
+        if (seen.has(c.claimId)) return false;
+        seen.add(c.claimId);
+        return true;
+      });
+
+      const claimedMapped: ClaimedDeal[] = uniqueClaims.map((c) => {
+        const dateStr = (c.claimedAt ?? '').split('T')[0];
+        const section = dateStr === todayStr ? 'today' : dateStr === yesterdayStr ? 'yesterday' : 'earlier';
+        const color = CATEGORY_COLORS.default;
+        const dealTitle = c.dealTitle ?? 'Deal';
+        return {
+          id: c.claimId,
+          business: dealTitle,
+          deal: dealTitle,
+          discount: c.dealDiscount ? `-${c.dealDiscount}%` : 'Deal',
+          color,
+          date: dateStr,
+          distance: '',
+          status: (c.status as ClaimedDeal['status']) ?? 'claimed',
+          saved: c.dealDiscount ?? 0,
+          section,
+          businessLogo: TITLE_TO_LOGO[dealTitle],
+        };
+      });
+      setClaimedDeals(claimedMapped);
+
+      const totalClaimed = uniqueClaims.length;
+      const totalSaved = uniqueClaims.reduce((sum, c) => sum + (c.dealDiscount ?? 0), 0);
+      setSummary({
+        claimed: totalClaimed,
+        ronSaved: totalSaved,
+        avgDeal: totalClaimed > 0 ? Math.round(totalSaved / totalClaimed) : 0,
+      });
+
+      // Stamps from weekTracker
+      const stampsMapped = (streakRes.weekTracker ?? []).map((active) => active ? 'flame' : null);
+      setStamps(stampsMapped);
+
+      // Default badges
+      setBadges([
+        { name: 'Explorer', iconKey: 'compass', desc: 'Claim your first deal', unlocked: totalClaimed >= 1 },
+        { name: 'Regular', iconKey: 'coffee', desc: 'Claim 5 deals', unlocked: totalClaimed >= 5 },
+        { name: 'Saver', iconKey: 'coin', desc: 'Save 100 RON', unlocked: totalSaved >= 100 },
+        { name: 'Streak Master', iconKey: 'flame', desc: '7-day streak', unlocked: streakRes.currentStreak >= 7 },
+        { name: 'Champion', iconKey: 'medal', desc: 'Claim 20 deals', unlocked: totalClaimed >= 20 },
+      ]);
     } catch (err) {
       console.error('Failed to fetch my-deals data', err);
     } finally {
@@ -280,6 +387,7 @@ export default function MyDealsScreen() {
   function ClaimedCard({ deal }: { deal: ClaimedDeal }) {
     const expanded = expandedId === deal.id;
     const isExpired = deal.status === 'expired';
+    const logo = getBusinessLogo(deal.businessLogo);
 
     return (
       <Pressable
@@ -293,12 +401,22 @@ export default function MyDealsScreen() {
           elevation: 2,
         }}
       >
-        <View className="flex-row">
-          {/* Color bar */}
-          <View className="w-[5px]" style={{ backgroundColor: deal.color }} />
+        <View className="flex-row items-center px-4 py-3">
+          {/* Business logo */}
+          {logo ? (
+            <Image
+              source={logo}
+              style={{ width: 42, height: 42, borderRadius: 10 }}
+              className="mr-3"
+            />
+          ) : (
+            <View className="w-[42px] h-[42px] rounded-[10px] bg-[#2a2a30] items-center justify-center mr-3">
+              <Text className="text-[16px] font-bold text-[#8a8a8f]">{deal.business.charAt(0)}</Text>
+            </View>
+          )}
 
           {/* Main content */}
-          <View className="flex-1 px-4 py-3">
+          <View className="flex-1">
             <View className="flex-row items-center justify-between">
               <View className="flex-1 mr-3">
                 <Text className="text-[15px] font-bold text-white">{deal.business}</Text>
@@ -385,13 +503,21 @@ export default function MyDealsScreen() {
               elevation: 2,
             }}
           >
-            {/* Icon circle */}
-            <View
-              className="w-[46px] h-[46px] rounded-full items-center justify-center mr-3"
-              style={{ backgroundColor: deal.color + '18' }}
-            >
-              {getCategoryIcon(deal.categoryKey, 20, deal.color)}
-            </View>
+            {/* Business logo */}
+            {getBusinessLogo(deal.businessLogo) ? (
+              <Image
+                source={getBusinessLogo(deal.businessLogo)!}
+                style={{ width: 46, height: 46, borderRadius: 12 }}
+                className="mr-3"
+              />
+            ) : (
+              <View
+                className="w-[46px] h-[46px] rounded-xl items-center justify-center mr-3"
+                style={{ backgroundColor: deal.color + '18' }}
+              >
+                {getCategoryIcon(deal.categoryKey, 20, deal.color)}
+              </View>
+            )}
 
             {/* Content */}
             <View className="flex-1 mr-3">

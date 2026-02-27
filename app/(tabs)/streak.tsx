@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, ActivityIndicator, RefreshControl, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { FlameIcon, getCategoryIcon } from '@/components/icons/CategoryIcons';
 import { api } from '@/lib/api';
+import { getBusinessLogo } from '@/lib/businessLogos';
 
 const WEEK_DAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
@@ -14,12 +15,32 @@ interface Claim {
   business: string;
   date: string;
   amount: string;
+  businessLogo?: string;
+}
+
+interface RawStreakData {
+  currentStreak: number;
+  weekTracker: boolean[];
+  recentClaims: Array<{
+    claimId: string;
+    dealId: string;
+    dealTitle: string;
+    dealDiscount?: number;
+    status: string;
+    claimedAt: string;
+  }>;
+  totalClaims?: number;
 }
 
 interface StreakData {
   currentStreak: number;
-  weekTracker: boolean[]; // 7 booleans, Mon-Sun
+  weekTracker: boolean[];
   recentClaims: Claim[];
+}
+
+interface RawSavingsData {
+  totalClaims?: number;
+  allTimeSavings?: number;
 }
 
 interface SavingsData {
@@ -41,12 +62,54 @@ export default function StreakScreen() {
 
   const fetchData = useCallback(async () => {
     try {
-      const [streakRes, savingsRes] = await Promise.all([
-        api.get<StreakData>('/api/consumer/streak'),
-        api.get<SavingsData>('/api/consumer/savings'),
+      const [rawStreak, rawSavings] = await Promise.all([
+        api.get<RawStreakData>('/api/consumer/streak'),
+        api.get<RawSavingsData>('/api/consumer/savings'),
       ]);
-      setStreak(streakRes);
-      setSavings(savingsRes);
+
+      // Deduplicate claims by claimId
+      const seen = new Set<string>();
+      const uniqueClaims = (rawStreak.recentClaims ?? []).filter((c) => {
+        if (seen.has(c.claimId)) return false;
+        seen.add(c.claimId);
+        return true;
+      });
+
+      const TITLE_TO_LOGO: Record<string, string> = {
+        '50% Off Specialty Latte': 'origo',
+        '2-for-1 Craft Beers': 'shift',
+        '30% Off Traditional Lunch': 'manuc',
+        '25% Off Weekend Brunch': 'artist',
+        'Free Bouquet Upgrade': 'floraria',
+        '40% Off 60-Min Massage': 'zen',
+        'Buy 1 Get 1 Fresh Pastry': 'paine',
+      };
+      const mappedClaims: Claim[] = uniqueClaims.map((c) => {
+        const title = c.dealTitle ?? 'Deal';
+        return {
+          categoryKey: 'default',
+          business: title,
+          date: (c.claimedAt ?? '').split('T')[0],
+          amount: c.dealDiscount ? `-${c.dealDiscount}%` : 'Deal',
+          businessLogo: TITLE_TO_LOGO[title],
+        };
+      });
+
+      setStreak({
+        currentStreak: rawStreak.currentStreak ?? 0,
+        weekTracker: rawStreak.weekTracker ?? [],
+        recentClaims: mappedClaims,
+      });
+
+      const totalSaved = rawSavings?.allTimeSavings ?? 0;
+      const now = new Date();
+      const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+      setSavings({
+        monthLabel: `${monthNames[now.getMonth()]} Savings`,
+        totalSaved,
+        target: 400,
+        savedDescription: '',
+      });
     } catch (err) {
       console.error('Failed to fetch streak data', err);
     } finally {
@@ -174,14 +237,20 @@ export default function StreakScreen() {
               <Text className="text-[14px] text-[#8a8a8f]">{t('consumer.streak.noClaims')}</Text>
             </View>
           ) : (
-            recentClaims.map((claim, i) => (
+            recentClaims.map((claim, i) => {
+              const logo = getBusinessLogo(claim.businessLogo);
+              return (
               <View
                 key={i}
                 className="bg-[#1a1a1f] rounded-2xl px-4 py-3.5 mb-[9px] flex-row items-center"
               >
-                <View className="mr-3">
-                  {getCategoryIcon(claim.categoryKey, 24, '#8a8a8f')}
-                </View>
+                {logo ? (
+                  <Image source={logo} style={{ width: 38, height: 38, borderRadius: 10 }} className="mr-3" />
+                ) : (
+                  <View className="w-[38px] h-[38px] rounded-[10px] bg-[#2a2a30] items-center justify-center mr-3">
+                    {getCategoryIcon(claim.categoryKey, 20, '#8a8a8f')}
+                  </View>
+                )}
                 <View className="flex-1">
                   <Text className="text-[14px] font-bold text-white">
                     {claim.business}
@@ -192,7 +261,8 @@ export default function StreakScreen() {
                 </View>
                 <Text className="text-[16px] font-bold text-[#18a056]">{claim.amount}</Text>
               </View>
-            ))
+              );
+            })
           )}
         </View>
       </ScrollView>
